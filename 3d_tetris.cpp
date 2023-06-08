@@ -52,15 +52,17 @@ bool loadObjFile(const std::string& filename, std::vector<sf::Vector3f>& vertice
 }
 
 int main() {
-    sf::RenderWindow window(sf::VideoMode(800, 600), "3D Object");
+    sf::RenderWindow window(sf::VideoMode(600, 600), "3D Object");
 
     std::vector<sf::Vector3f> vertices;
     std::vector<std::vector<int>> faces;
-    loadObjFile("model.obj", vertices, faces);
+    loadObjFile("obj/stage.obj", vertices, faces);
 
     for (auto& vertex : vertices) {
-        vertex.z += 10;
-        vertex.y *= -1;
+        vertex.x -= 1.5;
+        vertex.y -= 1.5;
+        vertex.z += 1.5;
+        //vertex.y *= -1;
     }
 
     sf::Vector3f center(0, 0, 0);  // 객체의 중심점 정의
@@ -77,6 +79,9 @@ int main() {
         float angleX = sf::Keyboard::isKeyPressed(sf::Keyboard::Q) ? 3.0f : 0.0f;
         float angleY = sf::Keyboard::isKeyPressed(sf::Keyboard::W) ? 3.0f : 0.0f;
         float angleZ = sf::Keyboard::isKeyPressed(sf::Keyboard::E) ? 3.0f : 0.0f;
+        angleX = sf::Keyboard::isKeyPressed(sf::Keyboard::A) ? -3.0f : angleX;
+        angleY = sf::Keyboard::isKeyPressed(sf::Keyboard::S) ? -3.0f : angleY;
+        angleZ = sf::Keyboard::isKeyPressed(sf::Keyboard::D) ? -3.0f : angleZ;
 
         for (auto& vertex : vertices) {
             vertex = rotate(vertex - center, angleX, angleY, angleZ) + center;
@@ -86,12 +91,13 @@ int main() {
 
         for (const auto& face : faces) {
             sf::Vertex line[] = {
-                sf::Vertex(project(vertices[face[0]]) * 400.f + sf::Vector2f(400, 300)),
-                sf::Vertex(project(vertices[face[1]]) * 400.f + sf::Vector2f(400, 300)),
-                sf::Vertex(project(vertices[face[2]]) * 400.f + sf::Vector2f(400, 300)),
-                sf::Vertex(project(vertices[face[0]]) * 400.f + sf::Vector2f(400, 300))
+                sf::Vertex(project(vertices[face[0]]) * 300.f + sf::Vector2f(300, 300)),
+                sf::Vertex(project(vertices[face[1]]) * 300.f + sf::Vector2f(300, 300)),
+                sf::Vertex(project(vertices[face[2]]) * 300.f + sf::Vector2f(300, 300)),
+                sf::Vertex(project(vertices[face[3]]) * 300.f + sf::Vector2f(300, 300)),
+                sf::Vertex(project(vertices[face[0]]) * 300.f + sf::Vector2f(300, 300))
             };
-            window.draw(line, 4, sf::Lines);
+            window.draw(line, 5, sf::LineStrip);
         }
 
         window.display();
