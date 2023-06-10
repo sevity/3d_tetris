@@ -9,24 +9,8 @@
 typedef sf::Vector3f point_3d;
 typedef sf::Vector2f point_2d;
 
-sf::Vector3f crossProduct(const sf::Vector3f& a, const sf::Vector3f& b) {
-    return sf::Vector3f(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
-}
-sf::Vector3f normalize(const sf::Vector3f& v) {
-    float length = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-    return sf::Vector3f(v.x / length, v.y / length, v.z / length);
-}
-sf::Vector3f calculateNormal(const std::vector<sf::Vector3f>& vertices, const std::vector<int>& face) {
-    sf::Vector3f v1 = vertices[face[1]] - vertices[face[0]];
-    sf::Vector3f v2 = vertices[face[2]] - vertices[face[0]];
-    sf::Vector3f normal = crossProduct(v1, v2);
-    return normalize(normal);
-}
-float dotProduct(const sf::Vector3f& a, const sf::Vector3f& b) {
-    return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-
-
+sf::Color lv_color[] = {sf::Color::Red, sf::Color::Cyan, sf::Color::Green, sf::Color::Blue, sf::Color(128, 128, 128), sf::Color::Yellow, sf::Color::Magenta, sf::Color::Red,
+                     sf::Color::Cyan, sf::Color::Green, sf::Color::Blue};
 
 sf::Vector3f rotate(const sf::Vector3f& point, float angleX, float angleY, float angleZ) {
     float radX = angleX * M_PI / 180.0f;
@@ -135,27 +119,19 @@ bool compareFaces(const std::vector<int>& face1, const std::vector<int>& face2, 
 }
 
 void draw_world(sf::RenderWindow& window, std::vector<sf::Vector3f>& vertices, std::vector<std::vector<int>>& faces) {
-    //sf::Vector3f cameraDirection(0, 0, 1);
     // sort the faces by depth
     std::stable_sort(faces.begin(), faces.end(), [&](const std::vector<int>& face1, const std::vector<int>& face2) {
         return compareFaces(face1, face2, vertices);
     });
     
     for (const auto& face : faces) {
-        /*
-        sf::Vector3f normal = calculateNormal(vertices, face);
-        // Don't draw the face if it's not facing the camera
-        if (dotProduct(normal, cameraDirection) < 0)
-            continue;
-        */
-         
         sf::ConvexShape polygon;
         polygon.setPointCount(4);
         polygon.setPoint(0, viewport(project(vertices[face[0]]), 600, 600));
         polygon.setPoint(1, viewport(project(vertices[face[1]]), 600, 600));
         polygon.setPoint(2, viewport(project(vertices[face[2]]), 600, 600));
         polygon.setPoint(3, viewport(project(vertices[face[3]]), 600, 600));
-        polygon.setFillColor(sf::Color::Blue);
+        polygon.setFillColor(lv_color[(int)vertices[face[0]].z]);
         window.draw(polygon);
         
 
@@ -202,7 +178,7 @@ void generate_world_blocks(std::vector<sf::Vector3f>& vertices, std::vector<std:
     int base_idx = 0;
 
     //for (int z = 0; z < 5; ++z) {
-    for (int z = 10; z >= 0; --z) {
+    for (int z = 10; z >= 0; --z) {  // 10이 바닥
         for (int y = 0; y < 3; ++y) {
             for (int x = 0; x < 3; ++x) {
                 if (world[z][y][x] == 1) {
@@ -260,43 +236,43 @@ int main() {
     int world[10][3][3] = {
         0,0,0,
         0,0,0,
-        0,0,0,
+        0,0,1,
 
         0,0,0,
         0,0,0,
-        0,0,0,
+        0,0,1,
 
         0,0,0,
         0,0,0,
-        0,0,0,
+        0,0,1,
 
         0,0,0,
         0,0,0,
-        0,0,0,
+        0,0,1,
 
         0,0,0,
         0,0,0,
-        0,0,0,
+        0,0,1,
 
         0,0,0,
         0,0,0,
-        0,0,0,
+        0,0,1,
 
         0,0,0,
         0,0,0,
-        0,0,0,
+        0,0,1,
 
         0,1,0,
         0,0,0,
-        0,0,0,
+        0,0,1,
 
         0,1,1,
         0,0,0,
-        0,0,0,
+        0,0,1,
 
         1,1,1,
         0,1,1,
-        0,0,1,
+        1,0,1,
     };
 
     std::vector<sf::Vector3f> vertices;
