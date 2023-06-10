@@ -25,7 +25,7 @@ sf::Vector2f project(const sf::Vector3f& point) {
     return sf::Vector2f(point.x / point.z, point.y / point.z);
 }
 
-bool loadObjFile(const std::string& filename, std::vector<sf::Vector3f>& vertices, std::vector<std::vector<int>>& faces) {
+bool loadObjFile(const std::string& filename, std::vector<sf::Vector3f>& vertices, std::vector<std::vector<int>>& faces, std::vector<std::vector<int>>& lines) {
     std::ifstream file(filename);
     std::string line;
     while (std::getline(file, line)) {
@@ -45,6 +45,15 @@ bool loadObjFile(const std::string& filename, std::vector<sf::Vector3f>& vertice
                 face.push_back(index - 1); // OBJ indices start from 1
             }
             faces.push_back(face);
+        } else if (type == "l") { // line
+            std::vector<int> line; std::string vertex;
+            while (iss >> vertex) {
+                std::istringstream viss(vertex);
+                int index; char separator;
+                viss >> index >> separator;
+                line.push_back(index - 1); // OBJ indices start from 1
+            }
+            lines.push_back(line);
         }
     }
     file.close();
@@ -56,48 +65,69 @@ int main() {
 
     std::vector<sf::Vector3f> vertices;
     std::vector<std::vector<int>> faces;
-    loadObjFile("obj/stage.obj", vertices, faces);
+    std::vector<std::vector<int>> lines;
+    loadObjFile("obj/stage.obj", vertices, faces, lines);
+
+    std::vector<sf::Vector3f> v2;
+    std::vector<std::vector<int>> f2;
+    std::vector<std::vector<int>> l2;
+    loadObjFile("obj/t_block_0.obj", v2, f2, l2);
 
     for (auto& vertex : vertices) {
         vertex.x -= 1.5;
         vertex.y -= 1.5;
         vertex.z += 1.5;
-        //vertex.y *= -1;
+    }
+    for (auto& vertex : v2) {
+        vertex.x -= 1.5;
+        vertex.y -= 1.5;
+        vertex.z -= 0.5;
     }
 
     sf::Vector3f center(0, 0, 0);  // 객체의 중심점 정의
-    center = std::accumulate(vertices.begin(), vertices.end(), center);
-    center /= (float)vertices.size();
+    center = std::accumulate(v2.begin(), v2.end(), center);
+    center /= (float)v2.size();
 
     while (window.isOpen()) {
         sf::Event event;
+        float angleX = 0, angleY = 0, angleZ = 0;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
                 window.close();
+            if (event.type == sf::Event::KeyPressed) {
+                switch (event.key.code) {
+                case sf::Keyboard::Q: angleX = 90.0f; break;
+                case sf::Keyboard::W: angleY = 90.0f; break;
+                case sf::Keyboard::E: angleZ = 90.0f; break;
+                case sf::Keyboard::A: angleX = -90.0f; break;
+                case sf::Keyboard::S: angleY = -90.0f; break;
+                case sf::Keyboard::D: angleZ = -90.0f; break;
+                default: break;
+                }
+            }
         }
 
-        float angleX = sf::Keyboard::isKeyPressed(sf::Keyboard::Q) ? 3.0f : 0.0f;
-        float angleY = sf::Keyboard::isKeyPressed(sf::Keyboard::W) ? 3.0f : 0.0f;
-        float angleZ = sf::Keyboard::isKeyPressed(sf::Keyboard::E) ? 3.0f : 0.0f;
-        angleX = sf::Keyboard::isKeyPressed(sf::Keyboard::A) ? -3.0f : angleX;
-        angleY = sf::Keyboard::isKeyPressed(sf::Keyboard::S) ? -3.0f : angleY;
-        angleZ = sf::Keyboard::isKeyPressed(sf::Keyboard::D) ? -3.0f : angleZ;
-
-        for (auto& vertex : vertices) {
+        for (auto& vertex : v2) {
             vertex = rotate(vertex - center, angleX, angleY, angleZ) + center;
         }
 
         window.clear();
-
         for (const auto& face : faces) {
             sf::Vertex line[] = {
-                sf::Vertex(project(vertices[face[0]]) * 300.f + sf::Vector2f(300, 300)),
-                sf::Vertex(project(vertices[face[1]]) * 300.f + sf::Vector2f(300, 300)),
-                sf::Vertex(project(vertices[face[2]]) * 300.f + sf::Vector2f(300, 300)),
-                sf::Vertex(project(vertices[face[3]]) * 300.f + sf::Vector2f(300, 300)),
-                sf::Vertex(project(vertices[face[0]]) * 300.f + sf::Vector2f(300, 300))
+                sf::Vertex(project(vertices[face[0]]) * 300.f + sf::Vector2f(300, 300), sf::Color::Green),
+                sf::Vertex(project(vertices[face[1]]) * 300.f + sf::Vector2f(300, 300), sf::Color::Green),
+                sf::Vertex(project(vertices[face[2]]) * 300.f + sf::Vector2f(300, 300), sf::Color::Green),
+                sf::Vertex(project(vertices[face[3]]) * 300.f + sf::Vector2f(300, 300), sf::Color::Green),
+                sf::Vertex(project(vertices[face[0]]) * 300.f + sf::Vector2f(300, 300), sf::Color::Green)
             };
             window.draw(line, 5, sf::LineStrip);
+        }
+        for (const auto& line : l2) {
+            sf::Vertex lineVertices[] = {
+                sf::Vertex(project(v2[line[0]]) * 300.f + sf::Vector2f(300, 300)),
+                sf::Vertex(project(v2[line[1]]) * 300.f + sf::Vector2f(300, 300))
+            };
+            window.draw(lineVertices, 2, sf::Lines);
         }
 
         window.display();

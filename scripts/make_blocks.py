@@ -71,9 +71,9 @@ block_shape = [
 generate_custom_block_obj("s_block.obj", block_shape)
 
 block_shape = [
-    [[1,0,0],[0,0,0],[0,0,0]],
-    [[1,0,0],[1,0,0],[0,0,0]],
-    [[1,0,0],[0,0,0],[0,0,0]]
+    [[0,0,0],[0,0,0],[0,0,0]],
+    [[0,0,0],[0,0,0],[0,0,0]],
+    [[0,0,0],[0,1,0],[1,1,1]]
 ]
 generate_custom_block_obj("t_block.obj", block_shape)
 
