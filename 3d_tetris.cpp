@@ -9,6 +9,25 @@
 typedef sf::Vector3f point_3d;
 typedef sf::Vector2f point_2d;
 
+sf::Vector3f crossProduct(const sf::Vector3f& a, const sf::Vector3f& b) {
+    return sf::Vector3f(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+}
+sf::Vector3f normalize(const sf::Vector3f& v) {
+    float length = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+    return sf::Vector3f(v.x / length, v.y / length, v.z / length);
+}
+sf::Vector3f calculateNormal(const std::vector<sf::Vector3f>& vertices, const std::vector<int>& face) {
+    sf::Vector3f v1 = vertices[face[1]] - vertices[face[0]];
+    sf::Vector3f v2 = vertices[face[2]] - vertices[face[0]];
+    sf::Vector3f normal = crossProduct(v1, v2);
+    return normalize(normal);
+}
+float dotProduct(const sf::Vector3f& a, const sf::Vector3f& b) {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+
+
 sf::Vector3f rotate(const sf::Vector3f& point, float angleX, float angleY, float angleZ) {
     float radX = angleX * M_PI / 180.0f;
     float radY = angleY * M_PI / 180.0f;
@@ -101,6 +120,56 @@ void draw_stage(sf::RenderWindow& window, std::vector<sf::Vector3f>& vertices, s
         window.draw(line, 5, sf::LineStrip);
     }
 }
+bool compareFaces(const std::vector<int>& face1, const std::vector<int>& face2, const std::vector<sf::Vector3f>& vertices) {
+    sf::Vector3f centroid1 = (vertices[face1[0]] + vertices[face1[1]] + vertices[face1[2]] + vertices[face1[3]]) / 4.0f;
+    sf::Vector3f centroid2 = (vertices[face2[0]] + vertices[face2[1]] + vertices[face2[2]] + vertices[face2[3]]) / 4.0f;
+
+    // Compute the distance from each centroid to the z-axis (in 3D space)
+    if(centroid1.z == centroid2.z) {
+        float distance1 = sqrt(centroid1.x * centroid1.x + centroid1.y * centroid1.y);
+        float distance2 = sqrt(centroid2.x * centroid2.x + centroid2.y * centroid2.y);
+        return distance1 > distance2;
+    }
+
+    return centroid1.z > centroid2.z;
+}
+
+void draw_world(sf::RenderWindow& window, std::vector<sf::Vector3f>& vertices, std::vector<std::vector<int>>& faces) {
+    //sf::Vector3f cameraDirection(0, 0, 1);
+    // sort the faces by depth
+    std::stable_sort(faces.begin(), faces.end(), [&](const std::vector<int>& face1, const std::vector<int>& face2) {
+        return compareFaces(face1, face2, vertices);
+    });
+    
+    for (const auto& face : faces) {
+        /*
+        sf::Vector3f normal = calculateNormal(vertices, face);
+        // Don't draw the face if it's not facing the camera
+        if (dotProduct(normal, cameraDirection) < 0)
+            continue;
+        */
+         
+        sf::ConvexShape polygon;
+        polygon.setPointCount(4);
+        polygon.setPoint(0, viewport(project(vertices[face[0]]), 600, 600));
+        polygon.setPoint(1, viewport(project(vertices[face[1]]), 600, 600));
+        polygon.setPoint(2, viewport(project(vertices[face[2]]), 600, 600));
+        polygon.setPoint(3, viewport(project(vertices[face[3]]), 600, 600));
+        polygon.setFillColor(sf::Color::Blue);
+        window.draw(polygon);
+        
+
+        sf::Vertex line[] = {
+            sf::Vertex(viewport(project(vertices[face[0]]), 600, 600), sf::Color::Black),
+            sf::Vertex(viewport(project(vertices[face[1]]), 600, 600), sf::Color::Black),
+            sf::Vertex(viewport(project(vertices[face[2]]), 600, 600), sf::Color::Black),
+            sf::Vertex(viewport(project(vertices[face[3]]), 600, 600), sf::Color::Black),
+            sf::Vertex(viewport(project(vertices[face[0]]), 600, 600), sf::Color::Black)
+        };
+        window.draw(line, 5, sf::LineStrip);
+    }
+}
+
 
 void draw_block(sf::RenderWindow& window, std::vector<sf::Vector3f>& vertices, std::vector<std::vector<int>> lines) {
     for (const auto& line : lines) {
@@ -111,25 +180,70 @@ void draw_block(sf::RenderWindow& window, std::vector<sf::Vector3f>& vertices, s
         window.draw(lineVertices, 2, sf::Lines);
     }
 }
+void write_cube(std::vector<sf::Vector3f>& vertices, float x, float y, float z) {
+    vertices.push_back(sf::Vector3f(x, y, z));
+    vertices.push_back(sf::Vector3f(x+1, y, z));
+    vertices.push_back(sf::Vector3f(x+1, y, z+1));
+    vertices.push_back(sf::Vector3f(x, y, z+1));
+    vertices.push_back(sf::Vector3f(x, y+1, z));
+    vertices.push_back(sf::Vector3f(x+1, y+1, z));
+    vertices.push_back(sf::Vector3f(x+1, y+1, z+1));
+    vertices.push_back(sf::Vector3f(x, y+1, z+1));
+
+    for(int i=0;i<8;i++){
+        sf::Vector3f& vertex = vertices[vertices.size()-1-i];
+        vertex.x -= 1.5;
+        vertex.y -= 1.5;
+        vertex.z += 1.5;
+    }
+}
+
+void generate_world_blocks(std::vector<sf::Vector3f>& vertices, std::vector<std::vector<int>>& faces, int world[10][3][3]) {
+    int base_idx = 0;
+
+    //for (int z = 0; z < 5; ++z) {
+    for (int z = 10; z >= 0; --z) {
+        for (int y = 0; y < 3; ++y) {
+            for (int x = 0; x < 3; ++x) {
+                if (world[z][y][x] == 1) {
+                    write_cube(vertices, x, y, z);
+                    // 바닥 back face
+                    //faces.push_back({base_idx+2, base_idx+3, base_idx+7, base_idx+6});
+                    // E right face
+                    faces.push_back({base_idx+1, base_idx+2, base_idx+6, base_idx+5});
+                    // W left face
+                    faces.push_back({base_idx, base_idx+3, base_idx+7, base_idx+4});
+                    // S top face
+                    faces.push_back({base_idx+4, base_idx+5, base_idx+6, base_idx+7});
+                    // N bottom face
+                    faces.push_back({base_idx, base_idx+1, base_idx+2, base_idx+3});
+                    // 뚜껑 front face
+                    faces.push_back({base_idx, base_idx+1, base_idx+5, base_idx+4});
+                    base_idx += 8;
+                }
+            }
+        }
+    }
+}
 
 int main() {
     sf::RenderWindow window(sf::VideoMode(600, 600), "3D Object");
 
-    std::vector<sf::Vector3f> vertices;
-    std::vector<std::vector<int>> faces;
-    std::vector<std::vector<int>> lines;
-    loadObjFile("obj/stage.obj", vertices, faces, lines);
+    std::vector<sf::Vector3f> vs;
+    std::vector<std::vector<int>> fs;
+    std::vector<std::vector<int>> ls;
+    loadObjFile("obj/stage.obj", vs, fs, ls);
+    for (auto& vertex : vs) {
+        vertex.x -= 1.5;
+        vertex.y -= 1.5;
+        vertex.z += 1.5;
+    }
 
     std::vector<sf::Vector3f> v2;
     std::vector<std::vector<int>> f2;
     std::vector<std::vector<int>> l2;
     loadObjFile("obj/t_block_0.obj", v2, f2, l2);
 
-    for (auto& vertex : vertices) {
-        vertex.x -= 1.5;
-        vertex.y -= 1.5;
-        vertex.z += 1.5;
-    }
     for (auto& vertex : v2) {
         vertex.x -= 1.5;
         vertex.y -= 1.5;
@@ -142,6 +256,56 @@ int main() {
     center.y-=0.7;
     printf("center: %f, %f, %f\n", center.x, center.y, center.z);
 
+
+    int world[10][3][3] = {
+        0,0,0,
+        0,0,0,
+        0,0,0,
+
+        0,0,0,
+        0,0,0,
+        0,0,0,
+
+        0,0,0,
+        0,0,0,
+        0,0,0,
+
+        0,0,0,
+        0,0,0,
+        0,0,0,
+
+        0,0,0,
+        0,0,0,
+        0,0,0,
+
+        0,0,0,
+        0,0,0,
+        0,0,0,
+
+        0,0,0,
+        0,0,0,
+        0,0,0,
+
+        0,1,0,
+        0,0,0,
+        0,0,0,
+
+        0,1,1,
+        0,0,0,
+        0,0,0,
+
+        1,1,1,
+        0,1,1,
+        0,0,1,
+    };
+
+    std::vector<sf::Vector3f> vertices;
+    std::vector<std::vector<int>> faces;
+    std::vector<std::vector<int>> lines;
+    generate_world_blocks(vertices, faces, world);
+    std::sort(faces.begin(), faces.end(), [&](const std::vector<int>& face1, const std::vector<int>& face2) {
+        return compareFaces(face1, face2, vertices);
+    });
     while (window.isOpen()) {
         sf::Event event;
         float angleX = 0, angleY = 0, angleZ = 0;
@@ -153,7 +317,8 @@ int main() {
         for (auto& vertex : v2) vertex = rotate(vertex - center, angleX, angleY, angleZ) + center;
 
         window.clear();
-        draw_stage(window, vertices, faces);
+        draw_stage(window, vs, fs);
+        draw_world(window, vertices, faces);
         draw_block(window, v2, l2);
         window.display();
     }
