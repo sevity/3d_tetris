@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-std=c++11 -g
+CXXFLAGS=-std=c++17 -g
 LDFLAGS=-lsfml-graphics -lsfml-window -lsfml-system
 TARGET=3d_tetris
 SCRIPTS=scripts/build_obj_files.sh

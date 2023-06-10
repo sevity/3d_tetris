@@ -75,6 +75,42 @@ bool loadObjFile(const std::string& filename, std::vector<sf::Vector3f>& vertice
     file.close();
     return true;
 }
+void processKeyInput(sf::Event& event, float& angleX, float& angleY, float& angleZ) {
+    if (event.type == sf::Event::KeyPressed) {
+        switch (event.key.code) {
+            case sf::Keyboard::Q: angleX = 90.0f; break;
+            case sf::Keyboard::W: angleY = 90.0f; break;
+            case sf::Keyboard::E: angleZ = 90.0f; break;
+            case sf::Keyboard::A: angleX = -90.0f; break;
+            case sf::Keyboard::S: angleY = -90.0f; break;
+            case sf::Keyboard::D: angleZ = -90.0f; break;
+            default: break;
+        }
+    }
+}
+
+void draw_stage(sf::RenderWindow& window, std::vector<sf::Vector3f>& vertices, std::vector<std::vector<int>>& faces) {
+    for (const auto& face : faces) {
+        sf::Vertex line[] = {
+            sf::Vertex(viewport(project(vertices[face[0]]), 600, 600), sf::Color::Green),
+            sf::Vertex(viewport(project(vertices[face[1]]), 600, 600), sf::Color::Green),
+            sf::Vertex(viewport(project(vertices[face[2]]), 600, 600), sf::Color::Green),
+            sf::Vertex(viewport(project(vertices[face[3]]), 600, 600), sf::Color::Green),
+            sf::Vertex(viewport(project(vertices[face[0]]), 600, 600), sf::Color::Green)
+        };
+        window.draw(line, 5, sf::LineStrip);
+    }
+}
+
+void draw_block(sf::RenderWindow& window, std::vector<sf::Vector3f>& vertices, std::vector<std::vector<int>> lines) {
+    for (const auto& line : lines) {
+        sf::Vertex lineVertices[] = {
+            sf::Vertex(viewport(project(vertices[line[0]]), 600, 600)),
+            sf::Vertex(viewport(project(vertices[line[1]]), 600, 600))
+        };
+        window.draw(lineVertices, 2, sf::Lines);
+    }
+}
 
 int main() {
     sf::RenderWindow window(sf::VideoMode(600, 600), "3D Object");
@@ -112,41 +148,13 @@ int main() {
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
                 window.close();
-            if (event.type == sf::Event::KeyPressed) {
-                switch (event.key.code) {
-                case sf::Keyboard::Q: angleX = 90.0f; break;
-                case sf::Keyboard::W: angleY = 90.0f; break;
-                case sf::Keyboard::E: angleZ = 90.0f; break;
-                case sf::Keyboard::A: angleX = -90.0f; break;
-                case sf::Keyboard::S: angleY = -90.0f; break;
-                case sf::Keyboard::D: angleZ = -90.0f; break;
-                default: break;
-                }
-            }
+            processKeyInput(event, angleX, angleY, angleZ);
         }
-
-        for (auto& vertex : v2) {
-            vertex = rotate(vertex - center, angleX, angleY, angleZ) + center;
-        }
+        for (auto& vertex : v2) vertex = rotate(vertex - center, angleX, angleY, angleZ) + center;
 
         window.clear();
-        for (const auto& face : faces) {
-            sf::Vertex line[] = {
-                sf::Vertex(viewport(project(vertices[face[0]]), 600, 600), sf::Color::Green),
-                sf::Vertex(viewport(project(vertices[face[1]]), 600, 600), sf::Color::Green),
-                sf::Vertex(viewport(project(vertices[face[2]]), 600, 600), sf::Color::Green),
-                sf::Vertex(viewport(project(vertices[face[3]]), 600, 600), sf::Color::Green),
-                sf::Vertex(viewport(project(vertices[face[0]]), 600, 600), sf::Color::Green)
-            };
-            window.draw(line, 5, sf::LineStrip);
-        }
-        for (const auto& line : l2) {
-            sf::Vertex lineVertices[] = {
-                sf::Vertex(viewport(project(v2[line[0]]), 600, 600)),
-                sf::Vertex(viewport(project(v2[line[1]]), 600, 600))
-            };
-            window.draw(lineVertices, 2, sf::Lines);
-        }
+        draw_stage(window, vertices, faces);
+        draw_block(window, v2, l2);
         window.display();
     }
 
