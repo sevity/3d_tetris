@@ -6,6 +6,9 @@
 #include <vector>
 #include <numeric>
 
+typedef sf::Vector3f point_3d;
+typedef sf::Vector2f point_2d;
+
 sf::Vector3f rotate(const sf::Vector3f& point, float angleX, float angleY, float angleZ) {
     float radX = angleX * M_PI / 180.0f;
     float radY = angleY * M_PI / 180.0f;
@@ -23,6 +26,19 @@ sf::Vector3f rotate(const sf::Vector3f& point, float angleX, float angleY, float
 
 sf::Vector2f project(const sf::Vector3f& point) {
     return sf::Vector2f(point.x / point.z, point.y / point.z);
+}
+
+// 뷰포트 변환
+point_2d viewport(point_2d p, float screenWidth, float screenHeight) {
+    // 좌표계를 (-1, 1)에서 (0, 1)로 변환
+    float normalizedX = (p.x + 1.0f) / 2.0f;
+    float normalizedY = (p.y + 1.0f) / 2.0f;
+
+    // (0, 1)에서 실제 스크린 사이즈 만큼 확대
+    float screenX = normalizedX * screenWidth;
+    float screenY = normalizedY * screenHeight;
+
+    return point_2d(screenX, screenY);
 }
 
 bool loadObjFile(const std::string& filename, std::vector<sf::Vector3f>& vertices, std::vector<std::vector<int>>& faces, std::vector<std::vector<int>>& lines) {
@@ -87,6 +103,8 @@ int main() {
     sf::Vector3f center(0, 0, 0);  // 객체의 중심점 정의
     center = std::accumulate(v2.begin(), v2.end(), center);
     center /= (float)v2.size();
+    center.y-=0.7;
+    printf("center: %f, %f, %f\n", center.x, center.y, center.z);
 
     while (window.isOpen()) {
         sf::Event event;
@@ -114,22 +132,21 @@ int main() {
         window.clear();
         for (const auto& face : faces) {
             sf::Vertex line[] = {
-                sf::Vertex(project(vertices[face[0]]) * 300.f + sf::Vector2f(300, 300), sf::Color::Green),
-                sf::Vertex(project(vertices[face[1]]) * 300.f + sf::Vector2f(300, 300), sf::Color::Green),
-                sf::Vertex(project(vertices[face[2]]) * 300.f + sf::Vector2f(300, 300), sf::Color::Green),
-                sf::Vertex(project(vertices[face[3]]) * 300.f + sf::Vector2f(300, 300), sf::Color::Green),
-                sf::Vertex(project(vertices[face[0]]) * 300.f + sf::Vector2f(300, 300), sf::Color::Green)
+                sf::Vertex(viewport(project(vertices[face[0]]), 600, 600), sf::Color::Green),
+                sf::Vertex(viewport(project(vertices[face[1]]), 600, 600), sf::Color::Green),
+                sf::Vertex(viewport(project(vertices[face[2]]), 600, 600), sf::Color::Green),
+                sf::Vertex(viewport(project(vertices[face[3]]), 600, 600), sf::Color::Green),
+                sf::Vertex(viewport(project(vertices[face[0]]), 600, 600), sf::Color::Green)
             };
             window.draw(line, 5, sf::LineStrip);
         }
         for (const auto& line : l2) {
             sf::Vertex lineVertices[] = {
-                sf::Vertex(project(v2[line[0]]) * 300.f + sf::Vector2f(300, 300)),
-                sf::Vertex(project(v2[line[1]]) * 300.f + sf::Vector2f(300, 300))
+                sf::Vertex(viewport(project(v2[line[0]]), 600, 600)),
+                sf::Vertex(viewport(project(v2[line[1]]), 600, 600))
             };
             window.draw(lineVertices, 2, sf::Lines);
         }
-
         window.display();
     }
 
