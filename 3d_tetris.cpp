@@ -14,7 +14,7 @@ typedef sf::Vector3f point_3d;
 typedef sf::Vector2f point_2d;
 
 int blocks[7][3][3][3] = {
-    // corner
+    // 0.corner
     0,0,0, // 천장층
     0,0,0,
     1,0,0,
@@ -27,7 +27,7 @@ int blocks[7][3][3][3] = {
     0,0,0,
     0,0,0,
 
-    // double
+    // 1.double1
     0,0,0, // 천장층
     0,0,0,
     1,0,0,
@@ -39,8 +39,61 @@ int blocks[7][3][3][3] = {
     0,0,0, // 바닥층
     0,0,0,
     0,0,0,
+
+    // 2.double2
+    0,0,0, // 천장층
+    0,0,0,
+    1,0,0,
+
+    0,0,0, // 중간층
+    1,1,0,
+    1,0,0,
+
+    0,0,0, // 바닥층
+    0,0,0,
+    0,0,0,
+
+    // 3.N
+    0,0,0, // 천장층
+    0,1,1,
+    1,1,0,
+
+    0,0,0, // 중간층
+    0,0,0,
+    0,0,0,
+
+    0,0,0, // 바닥층
+    0,0,0,
+    0,0,0,
+
+    // 4.n 
+    0,0,0, // 천장층
+    1,0,0,
+    1,1,0,
+
+    0,0,0, // 중간층
+    0,0,0,
+    0,0,0,
+
+    0,0,0, // 바닥층
+    0,0,0,
+    0,0,0,
+
+    // 5.L 
+    0,0,0, // 천장층
+    1,0,0,
+    1,1,1,
+
+    0,0,0, // 중간층
+    0,0,0,
+    0,0,0,
+
+    0,0,0, // 바닥층
+    0,0,0,
+    0,0,0,
 };
-int world[10][3][3] = {
+const int WORLD_H = 10;
+int world[WORLD_H][3][3] = {
     0,0,0,
     0,0,0,
     0,0,0,
@@ -370,7 +423,7 @@ int main() {
     int kind, cx, cy, cz;
 	auto new_block = [&]()
 	{
-		kind = rand() % 2, cx = 0, cy = 0, cz = 0;
+		kind = rand() % 6, cx = 0, cy = 0, cz = 0;
 		//kind = 0, cx = 0, cy = 0, cz = 0;
 	};
 	new_block();
@@ -403,22 +456,24 @@ int main() {
 
 	auto clear_lines = [&]()
 	{
-        /*
-		int to = h_cnt - 1;
+		int to = WORLD_H - 1;
 		//from bottom line to top line...
-		for (int from = h_cnt - 1; from >= 0; from--)
+		for (int from = WORLD_H - 1; from >= 0; from--)
 		{
 			int cnt = 0;
-			for (int x = 0; x < w_cnt; x++)if (world[from][x])cnt++;
+			for (int y = 0; y < 3; y++)
+			for (int x = 0; x < 3; x++)
+                if (world[from][y][x])cnt++;
 			//if current line is not full, copy it(survived line)
-			if (cnt < w_cnt)
+			if (cnt < 3 * 3)
 			{
-				for (int x = 0; x < w_cnt; x++)world[to][x] = world[from][x];
+                for (int y = 0; y < 3; y++)
+                for (int x = 0; x < 3; x++)
+				    world[to][y][x] = world[from][y][x];
 				to--;
 			}
 			//otherwise it will be deleted(clear the line)
 		}
-        */
 	};
     bool game_over = false;
 	auto go_down = [&]()
@@ -447,7 +502,7 @@ int main() {
     sf::Clock clock;
     while (window.isOpen()) {
 		static float prev = clock.getElapsedTime().asSeconds();
-		if (clock.getElapsedTime().asSeconds() - prev >= 0.5)
+		if (clock.getElapsedTime().asSeconds() - prev >= 5.5)
 		{
 			prev = clock.getElapsedTime().asSeconds();
 			go_down();
@@ -477,11 +532,53 @@ int main() {
                     case sf::Keyboard::Right:
                         cx++; if(check_block()==false) cx--;
                         break;
+                    case sf::Keyboard::Space:
+                        while(go_down() == true);
+                        break;
                     default: break;
                 }
             }
         }
-        for (auto& vertex : vb) vertex = rotate(vertex - center, angleX, angleY, angleZ) + center;
+
+        //for (auto& vertex : vb) vertex = rotate(vertex - center, angleX, angleY, angleZ) + center;
+        //인티저회전
+        {
+            int temp[3][3][3];
+            auto rotateX = [&]() {
+                for (int x = 0; x < 3; ++x) for (int y = 0; y < 3; ++y) for (int z = 0; z < 3; ++z) temp[x][y][z] = blocks[kind][x][2-z][y];
+                for (int x = 0; x < 3; ++x) for (int y = 0; y < 3; ++y) for (int z = 0; z < 3; ++z) blocks[kind][x][y][z] = temp[x][y][z];
+            };
+            auto rotateY = [&]() {
+                for (int x = 0; x < 3; ++x) for (int y = 0; y < 3; ++y) for (int z = 0; z < 3; ++z) temp[x][y][z] = blocks[kind][2-z][y][x];
+                for (int x = 0; x < 3; ++x) for (int y = 0; y < 3; ++y) for (int z = 0; z < 3; ++z) blocks[kind][x][y][z] = temp[x][y][z];
+            };
+            auto rotateZ = [&]() {
+                for (int x = 0; x < 3; ++x) for (int y = 0; y < 3; ++y) for (int z = 0; z < 3; ++z) temp[x][y][z] = blocks[kind][y][2-x][z];
+                for (int x = 0; x < 3; ++x) for (int y = 0; y < 3; ++y) for (int z = 0; z < 3; ++z) blocks[kind][x][y][z] = temp[x][y][z];
+            };
+            if(angleX > 0){
+                rotateZ();
+                if(check_block() == false) rotateZ(), rotateZ(),rotateZ();  // 회전에 문제가 생기면 3번 더 돌림
+            } else if(angleX < 0){
+                rotateZ(), rotateZ(),rotateZ();
+                if(check_block() == false) rotateZ();
+            }
+            if(angleY > 0){
+                rotateY(), rotateY(),rotateY();
+                if(check_block() == false) rotateY();
+            } else if(angleY < 0){
+                rotateY();
+                if(check_block() == false) rotateY(), rotateY(),rotateY();
+            }
+            if(angleZ > 0){
+                rotateX();
+                if(check_block() == false) rotateX(), rotateX(),rotateX();
+            } else if(angleZ < 0){
+                rotateX(), rotateX(),rotateX();
+                if(check_block() == false) rotateX();
+            }
+        }
+
 
         window.clear();
         draw_stage(window, vs, fs);
