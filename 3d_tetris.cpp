@@ -15,12 +15,12 @@ typedef sf::Vector2f point_2d;
 
 int blocks[7][3][3][3] = {
     0,0,0, // 천장층
-    1,1,0,
-    1,1,0,
+    0,0,0,
+    1,0,0,
 
     0,0,0, // 중간층
-    0,0,0,
-    0,0,0,
+    1,0,0,
+    1,1,0,
 
     0,0,0, // 바닥층
     0,0,0,
@@ -86,9 +86,8 @@ sf::Vector3f rotate(const sf::Vector3f& point, float angleX, float angleY, float
         point.x * (-sinY) + point.y * (sinX * cosY) + point.z * (cosX * cosY)
     };
 }
-
-sf::Vector2f project(const sf::Vector3f& point) {
-    return sf::Vector2f(point.x / point.z, point.y / point.z);
+sf::Vector2f project(const sf::Vector3f& point, float zoom_factor = 1.0) {
+    return sf::Vector2f(point.x / (point.z * zoom_factor), point.y / (point.z * zoom_factor));
 }
 
 // 뷰포트 변환
@@ -137,21 +136,6 @@ bool loadObjFile(const std::string& filename, std::vector<sf::Vector3f>& vertice
     }
     file.close();
     return true;
-}
-int g_cnt = 0;
-void processKeyInput(sf::Event& event, float& angleX, float& angleY, float& angleZ) {
-    if (event.type == sf::Event::KeyPressed) {
-        switch (event.key.code) {
-            case sf::Keyboard::Q: angleX = 90.0f; break;
-            case sf::Keyboard::W: angleY = 90.0f; break;
-            case sf::Keyboard::E: angleZ = 90.0f; break;
-            case sf::Keyboard::A: angleX = -90.0f; break;
-            case sf::Keyboard::S: angleY = -90.0f; break;
-            case sf::Keyboard::D: angleZ = -90.0f; break;
-            case sf::Keyboard::Z: ++g_cnt; printf("g_cnt:%d\n", g_cnt);break;
-            default: break;
-        }
-    }
 }
 
 void draw_stage(sf::RenderWindow& window, std::vector<sf::Vector3f>& vertices, std::vector<std::vector<int>>& faces) {
@@ -209,15 +193,6 @@ void draw_world(sf::RenderWindow& window, std::vector<sf::Vector3f>& vertices, s
 }
 
 
-void draw_block(sf::RenderWindow& window, std::vector<sf::Vector3f>& vertices, std::vector<std::vector<int>> lines) {
-    for (const auto& line : lines) {
-        sf::Vertex lineVertices[] = {
-            sf::Vertex(viewport(project(vertices[line[0]]), 600, 600)),
-            sf::Vertex(viewport(project(vertices[line[1]]), 600, 600))
-        };
-        window.draw(lineVertices, 2, sf::Lines);
-    }
-}
 void write_cube(std::vector<sf::Vector3f>& vertices, float x, float y, float z) {
     vertices.push_back(sf::Vector3f(x, y, z));
     vertices.push_back(sf::Vector3f(x+1, y, z));
@@ -279,26 +254,6 @@ void generate_blocks(int blocks[7][3][3][3], std::vector<sf::Vector3f>& vertices
     }
 }
 */
-struct Vector3fCompare {
-    bool operator() (const sf::Vector3f& lhs, const sf::Vector3f& rhs) const {
-        return std::tie(lhs.x, lhs.y, lhs.z) < std::tie(rhs.x, rhs.y, rhs.z);
-    }
-};
-
-struct Line {
-    sf::Vector3f v1;
-    sf::Vector3f v2;
-    Line(sf::Vector3f v1, sf::Vector3f v2) : v1(v1), v2(v2) {
-        if (Vector3fCompare()(v2, v1)) std::swap(this->v1, this->v2);
-    }
-};
-
-struct LineCompare {
-    bool operator() (const Line& lhs, const Line& rhs) const {
-        Vector3fCompare comp;
-        return comp(lhs.v1, rhs.v1) ? true : (!comp(rhs.v1, lhs.v1) && comp(lhs.v2, rhs.v2));
-    }
-};
 
 const std::vector<std::vector<int>> cube_lines = {
     {0, 1}, {1, 2}, {2, 3}, {3, 0},
@@ -317,7 +272,6 @@ void generate_blocks(int blocks[7][3][3][3], std::vector<sf::Vector3f>& vertices
                     int cnt = 0;
                      for (const auto& line : cube_lines) {
                         lines.push_back({base_idx + line[0], base_idx + line[1]});
-                        //if(++cnt>g_cnt) return;
                     }
                     base_idx += 8;
                 }
@@ -356,37 +310,6 @@ void generate_blocks(int blocks[7][3][3][3], std::vector<sf::Vector3f>& vertices
             lines3.push_back(lines[i]);
     }
     lines = lines3;
-
-
-    return;
-
-
-
-
-    std::map<Line, int, LineCompare> line_map;
-    for (const auto& line : lines) {
-        Line current_line(vertices[line[0]], vertices[line[1]]);
-        if (line_map.find(current_line) != line_map.end()) {
-            line_map.erase(current_line);
-        } else {
-            line_map[current_line] = 1;
-        }
-    }
-
-    lines.clear();
-    for (const auto& line_map_entry : line_map) {
-        std::vector<int> line_indices(2);
-        for (int i = 0; i < vertices.size(); ++i) {
-            if (vertices[i] == line_map_entry.first.v1) {
-                line_indices[0] = i;
-            }
-            if (vertices[i] == line_map_entry.first.v2) {
-                line_indices[1] = i;
-            }
-        }
-        lines.push_back(line_indices);
-    }
-
 }
 
 int main() {
@@ -424,20 +347,106 @@ int main() {
     std::sort(faces.begin(), faces.end(), [&](const std::vector<int>& face1, const std::vector<int>& face2) {
         return compareFaces(face1, face2, vertices);
     });
+    int kind, cx, cy, cz;
+	auto new_block = [&]()
+	{
+		//kind = rand() % 7, cx = 0, cy = 0, cz = 0;
+		kind = 0, cx = 0, cy = 0, cz = 0;
+	};
+	new_block();
+
+	auto check_block = [&]()
+	{
+        for (int z = 0; z < 3; z++) {
+            for (int y = 0; y < 3; y++) {
+                for (int x = 0; x < 3; x++) {
+                    if (blocks[kind][z][y][x] == 0) {
+                        continue;
+                    }
+                    if (x + cx < 0 || x + cx >= 3) {
+                        return false; // hit wall
+                    }
+                    if (y + cy < 0 || y + cy >= 3) {
+                        return false; // hit wall
+                    }
+                    if (z + cz < 0 || z + cz >= 10) {
+                        return false; // hit ceil or bottom
+                    }
+                    if (world[cz + z][cy + y][cx + x]) {
+                        return false; // collision with world blocks
+                    }
+                }
+            }
+        }
+		return true;
+	};
+
+    /*
+	auto clear_lines = [&]()
+	{
+		int to = h_cnt - 1;
+		//from bottom line to top line...
+		for (int from = h_cnt - 1; from >= 0; from--)
+		{
+			int cnt = 0;
+			for (int x = 0; x < w_cnt; x++)if (world[from][x])cnt++;
+			//if current line is not full, copy it(survived line)
+			if (cnt < w_cnt)
+			{
+				for (int x = 0; x < w_cnt; x++)world[to][x] = world[from][x];
+				to--;
+			}
+			//otherwise it will be deleted(clear the line)
+		}
+	};
+    */
+
     while (window.isOpen()) {
         sf::Event event;
         float angleX = 0, angleY = 0, angleZ = 0;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
                 window.close();
-            processKeyInput(event, angleX, angleY, angleZ);
+            if (event.type == sf::Event::KeyPressed) {
+                switch (event.key.code) {
+                    case sf::Keyboard::Q: angleX = -90.0f; break;
+                    case sf::Keyboard::W: angleY = -90.0f; break;
+                    case sf::Keyboard::E: angleZ = -90.0f; break;
+                    case sf::Keyboard::A: angleX = 90.0f; break;
+                    case sf::Keyboard::S: angleY = 90.0f; break;
+                    case sf::Keyboard::D: angleZ = 90.0f; break;
+                    case sf::Keyboard::Up:
+                        cy--; if(check_block()==false) cy++;
+                        break;
+                    case sf::Keyboard::Down:
+                        cy++; if(check_block()==false) cy--;
+                        break;
+                    case sf::Keyboard::Left:
+                        cx--; if(check_block()==false) cx++;
+                        break;
+                    case sf::Keyboard::Right:
+                        cx++; if(check_block()==false) cx--;
+                        break;
+                    default: break;
+                }
+            }
         }
         for (auto& vertex : vb) vertex = rotate(vertex - center, angleX, angleY, angleZ) + center;
 
         window.clear();
-        //draw_stage(window, vs, fs);
-        //draw_world(window, vertices, faces);
-        draw_block(window, vb, lb);
+        draw_stage(window, vs, fs);
+        draw_world(window, vertices, faces);
+        auto draw_block = [&]() {
+            printf("cx:%d, cy:%d, cz:%d\n", cx, cy, cz);
+            for (const auto& line : lb) {
+                sf::Vertex lineVertices[] = {
+                    sf::Vertex(viewport(project(vb[line[0]]+point_3d(cx,cy,cz)), 600, 600)),
+                    sf::Vertex(viewport(project(vb[line[1]]+point_3d(cx,cy,cz)), 600, 600)),
+                };
+                window.draw(lineVertices, 2, sf::Lines);
+            }
+        };
+        draw_block();
         window.display();
     }
 
