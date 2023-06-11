@@ -212,10 +212,12 @@ void write_cube(std::vector<sf::Vector3f>& vertices, float x, float y, float z) 
 }
 
 void generate_world_blocks(int world[10][3][3], std::vector<sf::Vector3f>& vertices, std::vector<std::vector<int>>& faces) {
+    vertices.clear();
+    faces.clear();
     int base_idx = 0;
 
     //for (int z = 0; z < 5; ++z) {
-    for (int z = 10; z >= 0; --z) {  // 10이 바닥
+    for (int z = 9; z >= 0; --z) {  // 9가 바닥
         for (int y = 0; y < 3; ++y) {
             for (int x = 0; x < 3; ++x) {
                 if (world[z][y][x] == 1) {
@@ -231,6 +233,11 @@ void generate_world_blocks(int world[10][3][3], std::vector<sf::Vector3f>& verti
             }
         }
     }
+    /*
+    std::sort(faces.begin(), faces.end(), [&](const std::vector<int>& face1, const std::vector<int>& face2) {
+        return compareFaces(face1, face2, vertices);
+    });
+    */
 }
 /*
 void generate_blocks(int blocks[7][3][3][3], std::vector<sf::Vector3f>& vertices, std::vector<std::vector<int>>& faces) {
@@ -262,6 +269,8 @@ const std::vector<std::vector<int>> cube_lines = {
 };
 
 void generate_blocks(int blocks[7][3][3][3], std::vector<sf::Vector3f>& vertices, std::vector<std::vector<int>>& lines) {
+    vertices.clear();
+    lines.clear();
     int base_idx = 0;
 
     for (int z = 2; z >= 0; --z) {
@@ -344,9 +353,6 @@ int main() {
     std::vector<std::vector<int>> faces;
     std::vector<std::vector<int>> lines;
     generate_world_blocks(world, vertices, faces);
-    std::sort(faces.begin(), faces.end(), [&](const std::vector<int>& face1, const std::vector<int>& face2) {
-        return compareFaces(face1, face2, vertices);
-    });
     int kind, cx, cy, cz;
 	auto new_block = [&]()
 	{
@@ -381,9 +387,9 @@ int main() {
 		return true;
 	};
 
-    /*
 	auto clear_lines = [&]()
 	{
+        /*
 		int to = h_cnt - 1;
 		//from bottom line to top line...
 		for (int from = h_cnt - 1; from >= 0; from--)
@@ -398,10 +404,35 @@ int main() {
 			}
 			//otherwise it will be deleted(clear the line)
 		}
+        */
 	};
-    */
+	auto go_down = [&]()
+	{
+		cz++;
+		if (check_block() == false) // hit bottom
+		{
+			cz--;
+			for(int z=0;z<3;z++)for (int y = 0; y < 3; y++)for (int x = 0; x < 3; x++)
+				if (blocks[kind][z][y][x])
+				{
+					world[cz+z][cy + y][cx + x] = 1; //kind + 1;//+1 for avoiding 0
+				}
+			clear_lines();
+			//start next block
+			new_block();
+			return false;
+		}
+		return true;
+	};
 
+    sf::Clock clock;
     while (window.isOpen()) {
+		static float prev = clock.getElapsedTime().asSeconds();
+		if (clock.getElapsedTime().asSeconds() - prev >= 0.5)
+		{
+			prev = clock.getElapsedTime().asSeconds();
+			go_down();
+		}
         sf::Event event;
         float angleX = 0, angleY = 0, angleZ = 0;
         while (window.pollEvent(event)) {
@@ -435,9 +466,17 @@ int main() {
 
         window.clear();
         draw_stage(window, vs, fs);
+        generate_world_blocks(world, vertices, faces);
+        {
+            printf("\n");
+            for (int z = 9; z >= 0; --z)   // 9가 바닥
+                for (int y = 0; y < 3; ++y) 
+                    for (int x = 0; x < 3; ++x) 
+                        printf("%d ", world[z][y][x]);
+        }
         draw_world(window, vertices, faces);
         auto draw_block = [&]() {
-            printf("cx:%d, cy:%d, cz:%d\n", cx, cy, cz);
+            //printf("cx:%d, cy:%d, cz:%d\n", cx, cy, cz);
             for (const auto& line : lb) {
                 sf::Vertex lineVertices[] = {
                     sf::Vertex(viewport(project(vb[line[0]]+point_3d(cx,cy,cz)), 600, 600)),
@@ -447,6 +486,7 @@ int main() {
             }
         };
         draw_block();
+        
         window.display();
     }
 
