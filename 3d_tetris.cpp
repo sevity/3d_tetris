@@ -543,25 +543,47 @@ int main() {
         //for (auto& vertex : vb) vertex = rotate(vertex - center, angleX, angleY, angleZ) + center;
         //인티저회전
         {
+            // 블록의 중심 위치를 찾습니다.
+            double cx = 0, cy = 0, cz = 0;
+            int count = 0;
+            for (int x = 0; x < 3; ++x)
+                for (int y = 0; y < 3; ++y)
+                    for (int z = 0; z < 3; ++z)
+                        if (blocks[kind][x][y][z] == 1) {
+                            cx += x;
+                            cy += y;
+                            cz += z;
+                            count++;
+                        }
+            // 평균을 구합니다.
+            cx /= count;
+            cy /= count;
+            cz /= count;
+
             int temp[3][3][3];
-            auto rotateX = [&]() {
-                for (int x = 0; x < 3; ++x) for (int y = 0; y < 3; ++y) for (int z = 0; z < 3; ++z) temp[x][y][z] = blocks[kind][x][2-z][y];
-                for (int x = 0; x < 3; ++x) for (int y = 0; y < 3; ++y) for (int z = 0; z < 3; ++z) blocks[kind][x][y][z] = temp[x][y][z];
+            auto rotateZ = [&]() {
+                for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x)
+                    temp[z][y][x] = blocks[kind][z][2-x][y];
+                for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
             };
             auto rotateY = [&]() {
-                for (int x = 0; x < 3; ++x) for (int y = 0; y < 3; ++y) for (int z = 0; z < 3; ++z) temp[x][y][z] = blocks[kind][2-z][y][x];
-                for (int x = 0; x < 3; ++x) for (int y = 0; y < 3; ++y) for (int z = 0; z < 3; ++z) blocks[kind][x][y][z] = temp[x][y][z];
+                for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x)
+                    temp[z][y][x] = blocks[kind][2-x][y][z];
+                for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
             };
-            auto rotateZ = [&]() {
-                for (int x = 0; x < 3; ++x) for (int y = 0; y < 3; ++y) for (int z = 0; z < 3; ++z) temp[x][y][z] = blocks[kind][y][2-x][z];
-                for (int x = 0; x < 3; ++x) for (int y = 0; y < 3; ++y) for (int z = 0; z < 3; ++z) blocks[kind][x][y][z] = temp[x][y][z];
+            auto rotateX = [&]() {
+                for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x)
+                    temp[z][y][x] = blocks[kind][y][2-z][x];
+                for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
             };
+
+
             if(angleX > 0){
-                rotateZ();
-                if(check_block() == false) rotateZ(), rotateZ(),rotateZ();  // 회전에 문제가 생기면 3번 더 돌림
+                rotateX();
+                if(check_block() == false) rotateX(), rotateX(),rotateX();  // 회전에 문제가 생기면 3번 더 돌림
             } else if(angleX < 0){
-                rotateZ(), rotateZ(),rotateZ();
-                if(check_block() == false) rotateZ();
+                rotateX(), rotateX(),rotateX();
+                if(check_block() == false) rotateX();
             }
             if(angleY > 0){
                 rotateY(), rotateY(),rotateY();
@@ -571,11 +593,11 @@ int main() {
                 if(check_block() == false) rotateY(), rotateY(),rotateY();
             }
             if(angleZ > 0){
-                rotateX();
-                if(check_block() == false) rotateX(), rotateX(),rotateX();
+                rotateZ();
+                if(check_block() == false) rotateZ(), rotateZ(),rotateZ();
             } else if(angleZ < 0){
-                rotateX(), rotateX(),rotateX();
-                if(check_block() == false) rotateX();
+                rotateZ(), rotateZ(),rotateZ();
+                if(check_block() == false) rotateZ();
             }
         }
 
