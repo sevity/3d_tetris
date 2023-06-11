@@ -543,23 +543,6 @@ int main() {
         //for (auto& vertex : vb) vertex = rotate(vertex - center, angleX, angleY, angleZ) + center;
         //인티저회전
         {
-            // 블록의 중심 위치를 찾습니다.
-            double cx = 0, cy = 0, cz = 0;
-            int count = 0;
-            for (int x = 0; x < 3; ++x)
-                for (int y = 0; y < 3; ++y)
-                    for (int z = 0; z < 3; ++z)
-                        if (blocks[kind][x][y][z] == 1) {
-                            cx += x;
-                            cy += y;
-                            cz += z;
-                            count++;
-                        }
-            // 평균을 구합니다.
-            cx /= count;
-            cy /= count;
-            cz /= count;
-
             int temp[3][3][3];
             auto rotateZ = [&]() {
                 for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x)
@@ -580,24 +563,42 @@ int main() {
 
             if(angleX > 0){
                 rotateX();
-                if(check_block() == false) rotateX(), rotateX(),rotateX();  // 회전에 문제가 생기면 3번 더 돌림
+                if(check_block() == false) {
+                    cy = 0;
+                    if(check_block() == false) rotateX(), rotateX(),rotateX();
+                }
             } else if(angleX < 0){
                 rotateX(), rotateX(),rotateX();
-                if(check_block() == false) rotateX();
+                if(check_block() == false) {
+                    cy = 0;
+                    if(check_block() == false) rotateX();
+                }
             }
             if(angleY > 0){
                 rotateY(), rotateY(),rotateY();
-                if(check_block() == false) rotateY();
+                if(check_block() == false) {
+                    cx = 0;
+                    if(check_block() == false) rotateY();
+                }
             } else if(angleY < 0){
                 rotateY();
-                if(check_block() == false) rotateY(), rotateY(),rotateY();
+                if(check_block() == false) {
+                    cx = 0;
+                    if(check_block() == false) rotateY(), rotateY(),rotateY();
+                }
             }
             if(angleZ > 0){
                 rotateZ();
-                if(check_block() == false) rotateZ(), rotateZ(),rotateZ();
+                if(check_block() == false) {
+                    cx = cy = 0;
+                    if(check_block() == false) rotateZ(), rotateZ(),rotateZ();
+                }
             } else if(angleZ < 0){
                 rotateZ(), rotateZ(),rotateZ();
-                if(check_block() == false) rotateZ();
+                if(check_block() == false) {
+                    cx = cy = 0;
+                    if(check_block() == false) rotateZ();
+                }
             }
         }
 
