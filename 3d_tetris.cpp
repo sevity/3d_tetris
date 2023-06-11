@@ -14,12 +14,26 @@ typedef sf::Vector3f point_3d;
 typedef sf::Vector2f point_2d;
 
 int blocks[7][3][3][3] = {
+    // corner
     0,0,0, // 천장층
     0,0,0,
     1,0,0,
 
     0,0,0, // 중간층
     1,0,0,
+    1,1,0,
+
+    0,0,0, // 바닥층
+    0,0,0,
+    0,0,0,
+
+    // double
+    0,0,0, // 천장층
+    0,0,0,
+    1,0,0,
+
+    0,0,0, // 중간층
+    0,1,0,
     1,1,0,
 
     0,0,0, // 바닥층
@@ -268,7 +282,7 @@ const std::vector<std::vector<int>> cube_lines = {
     {0, 4}, {1, 5}, {2, 6}, {3, 7}
 };
 
-void generate_blocks(int blocks[7][3][3][3], std::vector<sf::Vector3f>& vertices, std::vector<std::vector<int>>& lines) {
+void generate_blocks(int blocks[7][3][3][3], int kind, std::vector<sf::Vector3f>& vertices, std::vector<std::vector<int>>& lines) {
     vertices.clear();
     lines.clear();
     int base_idx = 0;
@@ -276,7 +290,7 @@ void generate_blocks(int blocks[7][3][3][3], std::vector<sf::Vector3f>& vertices
     for (int z = 2; z >= 0; --z) {
         for (int y = 0; y < 3; ++y) {
             for (int x = 0; x < 3; ++x) {
-                if (blocks[0][z][y][x] == 1) {
+                if (blocks[kind][z][y][x] == 1) {
                     write_cube(vertices, x, y, z);
                     int cnt = 0;
                      for (const auto& line : cube_lines) {
@@ -338,7 +352,7 @@ int main() {
     std::vector<std::vector<int>> fb;
     std::vector<std::vector<int>> lb;
     //loadObjFile("obj/t_block_0.obj", v2, f2, l2);
-    generate_blocks(blocks, vb, lb);
+    generate_blocks(blocks, 0, vb, lb);
 
     sf::Vector3f center(0, 0, 0);  // 객체의 중심점 정의
     /*
@@ -356,8 +370,8 @@ int main() {
     int kind, cx, cy, cz;
 	auto new_block = [&]()
 	{
-		//kind = rand() % 7, cx = 0, cy = 0, cz = 0;
-		kind = 0, cx = 0, cy = 0, cz = 0;
+		kind = rand() % 2, cx = 0, cy = 0, cz = 0;
+		//kind = 0, cx = 0, cy = 0, cz = 0;
 	};
 	new_block();
 
@@ -406,8 +420,13 @@ int main() {
 		}
         */
 	};
+    bool game_over = false;
 	auto go_down = [&]()
 	{
+		if (cz == 0 && check_block() == false) {// game over
+            game_over = true;
+        }
+        if (game_over) return false;
 		cz++;
 		if (check_block() == false) // hit bottom
 		{
@@ -418,8 +437,8 @@ int main() {
 					world[cz+z][cy + y][cx + x] = 1; //kind + 1;//+1 for avoiding 0
 				}
 			clear_lines();
-			//start next block
-			new_block();
+            //start next block
+            new_block();
 			return false;
 		}
 		return true;
@@ -467,13 +486,6 @@ int main() {
         window.clear();
         draw_stage(window, vs, fs);
         generate_world_blocks(world, vertices, faces);
-        {
-            printf("\n");
-            for (int z = 9; z >= 0; --z)   // 9가 바닥
-                for (int y = 0; y < 3; ++y) 
-                    for (int x = 0; x < 3; ++x) 
-                        printf("%d ", world[z][y][x]);
-        }
         draw_world(window, vertices, faces);
         auto draw_block = [&]() {
             //printf("cx:%d, cy:%d, cz:%d\n", cx, cy, cz);
@@ -485,7 +497,23 @@ int main() {
                 window.draw(lineVertices, 2, sf::Lines);
             }
         };
-        draw_block();
+        if(game_over){
+            sf::Font font;
+            font.loadFromFile("fonts/arial.ttf");
+            sf::Text text;
+            text.setFont(font);
+            text.setFillColor(sf::Color::Red);
+            text.setString("Game Over");
+            text.setCharacterSize(54); // in pixels
+            sf::FloatRect textRect = text.getLocalBounds();
+            text.setOrigin(textRect.left + textRect.width/2.0f, textRect.top  + textRect.height/2.0f);
+            text.setPosition(sf::Vector2f(window.getSize().x/2.0f,window.getSize().y/2.0f));
+            window.draw(text);
+        } else {
+            generate_blocks(blocks, kind, vb, lb);
+            draw_block();
+        }
+
         
         window.display();
     }
