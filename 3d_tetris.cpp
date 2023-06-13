@@ -16,12 +16,12 @@ typedef sf::Vector2f point_2d;
 int blocks[7][3][3][3] = {
     // 0.corner
     0,0,0, // 천장층
+    1,0,0,
     0,0,0,
-    1,0,0,
 
-    0,0,0, // 중간층
-    1,0,0,
+    1,0,0, // 중간층
     1,1,0,
+    0,0,0,
 
     0,0,0, // 바닥층
     0,0,0,
@@ -29,12 +29,12 @@ int blocks[7][3][3][3] = {
 
     // 1.double1
     0,0,0, // 천장층
-    0,0,0,
     1,0,0,
+    0,0,0,
 
-    0,0,0, // 중간층
-    0,1,0,
+    0,1,0, // 중간층
     1,1,0,
+    0,0,0,
 
     0,0,0, // 바닥층
     0,0,0,
@@ -42,34 +42,34 @@ int blocks[7][3][3][3] = {
 
     // 2.double2
     0,0,0, // 천장층
-    0,0,0,
     1,0,0,
+    0,0,0,
 
-    0,0,0, // 중간층
-    1,1,0,
+    1,1,0, // 중간층
     1,0,0,
-
-    0,0,0, // 바닥층
-    0,0,0,
-    0,0,0,
-
-    // 3.N
-    0,0,0, // 천장층
-    0,1,1,
-    1,1,0,
-
-    0,0,0, // 중간층
-    0,0,0,
     0,0,0,
 
     0,0,0, // 바닥층
     0,0,0,
     0,0,0,
 
-    // 4.n 
-    0,0,0, // 천장층
-    1,0,0,
+    // 3.n 
+    1,0,0, // 천장층
     1,1,0,
+    0,0,0,
+
+    0,0,0, // 중간층
+    0,0,0,
+    0,0,0,
+
+    0,0,0, // 바닥층
+    0,0,0,
+    0,0,0,
+
+    // 4.N
+    0,1,1, // 천장층
+    1,1,0,
+    0,0,0,
 
     0,0,0, // 중간층
     0,0,0,
@@ -80,9 +80,9 @@ int blocks[7][3][3][3] = {
     0,0,0,
 
     // 5.L 
-    0,0,0, // 천장층
-    1,0,0,
+    1,0,0, // 천장층
     1,1,1,
+    0,0,0,
 
     0,0,0, // 중간층
     0,0,0,
@@ -122,17 +122,17 @@ int world[WORLD_H][3][3] = {
     0,0,0,
     0,0,0,
 
-    0,1,0,
     0,0,0,
-    0,0,1,
-
-    0,1,1,
     0,0,0,
-    0,0,1,
+    0,0,0,
 
-    1,1,1,
-    0,1,1,
-    1,0,1,
+    0,0,0,
+    0,0,0,
+    0,0,0,
+
+    0,0,0,
+    0,0,0,
+    0,0,0,
 };
 
 
@@ -543,8 +543,22 @@ int main() {
         //for (auto& vertex : vb) vertex = rotate(vertex - center, angleX, angleY, angleZ) + center;
         //인티저회전
         {
-            int temp[3][3][3];
+            int temp[3][3][3] = {};
             auto rotateZ = [&]() {
+                printf("move block inside\n");
+                int ox = cx, oy = cy, oz = cz;  // original x,y,z
+                cx=cy=0;
+                int mx = 0, my = 0, mz = 0;     // moved x,y,z
+                while(1){ mx ++, cx--; if(check_block()==false) {mx--, cx++;break;} }
+                while(1){ my ++, cy--; if(check_block()==false) {my--, cy++;break;} }
+                for (int z = 0; z < 2; ++z) for (int y = 0; y < 2; ++y) for (int x = 0; x < 2; ++x) temp[z][y][x] = blocks[kind][z+mz][y+my][x+mx];
+                for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
+                cx = ox+mx, cy = oy+my, cz = oz+mz;
+
+                printf("rotate!\n");
+                for (int z = 0; z < 2; ++z) for (int y = 0; y < 2; ++y) for (int x = 0; x < 2; ++x) temp[z][y][x] = blocks[kind][z][1-x][y];
+                for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
+                return;
                 for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x)
                     temp[z][y][x] = blocks[kind][z][2-x][y];
                 for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
