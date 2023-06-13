@@ -12,6 +12,7 @@ using namespace std;
 
 typedef sf::Vector3f point_3d;
 typedef sf::Vector2f point_2d;
+const int Z_OFFSET = 5;//원근감 조절을 위함
 
 int blocks_cpy[7][3][3][3];
 int blocks[7][3][3][3] = {
@@ -154,9 +155,27 @@ sf::Vector3f rotate(const sf::Vector3f& point, float angleX, float angleY, float
         point.x * (-sinY) + point.y * (sinX * cosY) + point.z * (cosX * cosY)
     };
 }
-sf::Vector2f project(const sf::Vector3f& point, float zoom_factor = 1.0) {
-    return sf::Vector2f(point.x / (point.z * zoom_factor), point.y / (point.z * zoom_factor));
+/*
+sf::Vector2f project(const sf::Vector3f& point, float fov = M_PI/2) {
+    float factor = tan(fov / 2.0f) / point.z;
+    return sf::Vector2f(point.x * factor, point.y * factor);
 }
+*/
+sf::Vector3f camera_position(0, 0, 0);  // 카메라 위치 설정. y값을 높게 설정하여 카메라를 높이 위치시킴
+sf::Vector3f look_at(0, 0, 1);  // 카메라가 바라보는 방향 설정. y값을 낮게 설정하여 카메라가 아래를 향하게 함
+
+sf::Vector2f project(const sf::Vector3f& point_) {
+    point_3d point = point_;
+    point.z += 1.50;
+    float z_plane = 2.0f;  // Projection plane on z-axis
+    sf::Vector3f direction = point - camera_position;
+    float factor = (z_plane - camera_position.z) / direction.z;
+    sf::Vector2f projected_point = sf::Vector2f(camera_position.x + direction.x * factor, camera_position.y + direction.y * factor);
+
+
+    return projected_point;
+}
+
 
 // 뷰포트 변환
 point_2d viewport(point_2d p, float screenWidth, float screenHeight) {
