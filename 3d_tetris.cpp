@@ -13,15 +13,16 @@ using namespace std;
 typedef sf::Vector3f point_3d;
 typedef sf::Vector2f point_2d;
 
+int blocks_cpy[7][3][3][3];
 int blocks[7][3][3][3] = {
     // 0.corner
     0,0,0, // 천장층
+    0,0,0,
     1,0,0,
-    0,0,0,
 
-    1,0,0, // 중간층
+    0,0,0, // 중간층
+    1,0,0,
     1,1,0,
-    0,0,0,
 
     0,0,0, // 바닥층
     0,0,0,
@@ -29,12 +30,12 @@ int blocks[7][3][3][3] = {
 
     // 1.double1
     0,0,0, // 천장층
+    0,0,0,
     1,0,0,
-    0,0,0,
 
-    0,1,0, // 중간층
+    0,0,0, // 중간층
+    0,1,0,
     1,1,0,
-    0,0,0,
 
     0,0,0, // 바닥층
     0,0,0,
@@ -42,21 +43,21 @@ int blocks[7][3][3][3] = {
 
     // 2.double2
     0,0,0, // 천장층
-    1,0,0,
     0,0,0,
+    1,0,0,
 
-    1,1,0, // 중간층
+    0,0,0, // 중간층
+    1,1,0,
     1,0,0,
-    0,0,0,
 
     0,0,0, // 바닥층
     0,0,0,
     0,0,0,
 
-    // 3.n 
-    1,0,0, // 천장층
+    // 3.N
+    0,0,0, // 천장층
+    0,1,1,
     1,1,0,
-    0,0,0,
 
     0,0,0, // 중간층
     0,0,0,
@@ -66,10 +67,10 @@ int blocks[7][3][3][3] = {
     0,0,0,
     0,0,0,
 
-    // 4.N
-    0,1,1, // 천장층
+    // 4.n
+    0,0,0, // 천장층
+    1,0,0,
     1,1,0,
-    0,0,0,
 
     0,0,0, // 중간층
     0,0,0,
@@ -79,10 +80,10 @@ int blocks[7][3][3][3] = {
     0,0,0,
     0,0,0,
 
-    // 5.L 
-    1,0,0, // 천장층
+    // 5.L
+    0,0,0, // 천장층
+    1,0,0,
     1,1,1,
-    0,0,0,
 
     0,0,0, // 중간층
     0,0,0,
@@ -405,6 +406,7 @@ int main() {
     std::vector<std::vector<int>> fb;
     std::vector<std::vector<int>> lb;
     //loadObjFile("obj/t_block_0.obj", v2, f2, l2);
+    for(int k=0;k<7;k++)for(int z=0;z<3;z++)for(int y=0;y<3;y++)for(int x=0;x<3;x++) blocks_cpy[k][z][y][x] = blocks[k][z][y][x];
     generate_blocks(blocks, 0, vb, lb);
 
     sf::Vector3f center(0, 0, 0);  // 객체의 중심점 정의
@@ -424,7 +426,9 @@ int main() {
 	auto new_block = [&]()
 	{
 		kind = rand() % 6, cx = 0, cy = 0, cz = 0;
-		//kind = 0, cx = 0, cy = 0, cz = 0;
+        for(int z=0;z<3;z++)for(int y=0;y<3;y++)for(int x=0;x<3;x++) blocks[kind][z][y][x] = blocks_cpy[kind][z][y][x];
+
+		//kind = 4, cx = 0, cy = 0, cz = 0;
 	};
 	new_block();
 
@@ -502,7 +506,7 @@ int main() {
     sf::Clock clock;
     while (window.isOpen()) {
 		static float prev = clock.getElapsedTime().asSeconds();
-		if (clock.getElapsedTime().asSeconds() - prev >= 5.5)
+		if (clock.getElapsedTime().asSeconds() - prev >= 555.5)
 		{
 			prev = clock.getElapsedTime().asSeconds();
 			go_down();
@@ -544,34 +548,63 @@ int main() {
         //인티저회전
         {
             int temp[3][3][3] = {};
-            auto rotateZ = [&]() {
-                printf("move block inside\n");
-                int ox = cx, oy = cy, oz = cz;  // original x,y,z
+            int maxx = 0, maxy = 0, maxz = 0;
+            int minx = 2, miny = 2, minz = 2;
+            auto get_minmax = [&]() {
+                maxx = 0, maxy = 0, maxz = 0;
+                minx = 2, miny = 2, minz = 2;
+                for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) {
+                    if(blocks[kind][z][y][x])
+                        minx = min(minx, x), maxx = max(maxx, x),
+                        miny = min(miny, y), maxy = max(maxy, y),
+                        minz = min(minz, z), maxz = max(maxz, z);
+                } 
+
+            };
+            auto move_block_inside = [&](){
+                int temp[3][3][3] = {};
+                int ox = cx, oy = cy;  // original x,y
                 cx=cy=0;
                 int mx = 0, my = 0, mz = 0;     // moved x,y,z
-                while(1){ mx ++, cx--; if(check_block()==false) {mx--, cx++;break;} }
-                while(1){ my ++, cy--; if(check_block()==false) {my--, cy++;break;} }
-                for (int z = 0; z < 2; ++z) for (int y = 0; y < 2; ++y) for (int x = 0; x < 2; ++x) temp[z][y][x] = blocks[kind][z+mz][y+my][x+mx];
+                get_minmax();
+                for (int z = 0; z < 3-minz; ++z) for (int y = 0; y < 3-miny; ++y) for (int x = 0; x < 3-minx; ++x) temp[z][y][x] = blocks[kind][z+minz][y+miny][x+minx];
                 for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
-                cx = ox+mx, cy = oy+my, cz = oz+mz;
-
-                printf("rotate!\n");
-                for (int z = 0; z < 2; ++z) for (int y = 0; y < 2; ++y) for (int x = 0; x < 2; ++x) temp[z][y][x] = blocks[kind][z][1-x][y];
+                cx = ox+minx, cy = oy+miny;
+            };
+            auto rotateZ = [&]() {
+                move_block_inside();
+                get_minmax();
+                int cnt = max(maxx, maxy)+1;
+                for (int z = 0; z < 3; ++z) for (int y = 0; y < cnt; ++y) for (int x = 0; x < cnt; ++x) temp[z][y][x] = blocks[kind][z][cnt-1-x][y];
                 for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
-                return;
-                for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x)
-                    temp[z][y][x] = blocks[kind][z][2-x][y];
-                for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
+                get_minmax();
+                if(minx>0) cx--;
+                if(miny>0) cy--;
+                if(cx+maxx>2) cx=2-maxx;
+                if(cy+maxy>2) cy=2-maxy;
             };
             auto rotateY = [&]() {
-                for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x)
-                    temp[z][y][x] = blocks[kind][2-x][y][z];
+                move_block_inside();
+                get_minmax();
+                int cnt = max(maxx, maxz)+1;
+                for (int z = 0; z < cnt; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < cnt; ++x) temp[z][y][x] = blocks[kind][cnt-1-x][y][z];
                 for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
+                get_minmax();
+                if(minx>0) cx--;
+                if(minz>0) move_block_inside();
+                if(cx+maxx>2) cx=2-maxx;
             };
             auto rotateX = [&]() {
-                for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x)
-                    temp[z][y][x] = blocks[kind][y][2-z][x];
+                move_block_inside();
+                get_minmax();
+                int cnt = max(maxy, maxz)+1;
+                for (int z = 0; z < cnt; ++z) for (int y = 0; y < cnt; ++y) for (int x = 0; x < 3; ++x) temp[z][y][x] = blocks[kind][y][cnt-1-z][x];
                 for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
+                get_minmax();
+                //if(minx>0) cx--;
+                if(miny>0) cy--;
+                if(minz>0) move_block_inside();
+                if(cy+maxy>2) cy=2-maxy;
             };
 
 
@@ -604,8 +637,7 @@ int main() {
             if(angleZ > 0){
                 rotateZ();
                 if(check_block() == false) {
-                    cx = cy = 0;
-                    if(check_block() == false) rotateZ(), rotateZ(),rotateZ();
+                    rotateZ(), rotateZ(),rotateZ();
                 }
             } else if(angleZ < 0){
                 rotateZ(), rotateZ(),rotateZ();
