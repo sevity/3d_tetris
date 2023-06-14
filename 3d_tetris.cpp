@@ -18,12 +18,12 @@ int blocks_cpy[7][3][3][3];
 int blocks[7][3][3][3] = {
     // 0.corner
     0,0,0, // 천장층
-    0,0,0,
-    1,0,0,
+    1,1,0,
+    1,1,0,
 
     0,0,0, // 중간층
-    1,0,0,
-    1,1,0,
+    0,0,0,
+    0,0,0,
 
     0,0,0, // 바닥층
     0,0,0,
@@ -326,28 +326,6 @@ void generate_world_blocks(int world[10][3][3], std::vector<sf::Vector3f>& verti
     });
     */
 }
-/*
-void generate_blocks(int blocks[7][3][3][3], std::vector<sf::Vector3f>& vertices, std::vector<std::vector<int>>& faces) {
-    int base_idx = 0;
-
-    for (int z = 2; z >= 0; --z) {
-        for (int y = 0; y < 3; ++y) {
-            for (int x = 0; x < 3; ++x) {
-                if (blocks[0][z][y][x] == 1) {
-                    write_cube(vertices, x, y, z);
-                    //faces.push_back({base_idx+2, base_idx+3, base_idx+7, base_idx+6}); // 바닥 back face
-                    faces.push_back({base_idx+1, base_idx+2, base_idx+6, base_idx+5});   // E right face
-                    faces.push_back({base_idx, base_idx+3, base_idx+7, base_idx+4});     // W left face
-                    faces.push_back({base_idx+4, base_idx+5, base_idx+6, base_idx+7});   // S top face
-                    faces.push_back({base_idx, base_idx+1, base_idx+2, base_idx+3});     // N bottom face
-                    faces.push_back({base_idx, base_idx+1, base_idx+5, base_idx+4});     // 뚜껑 front face
-                    base_idx += 8;
-                }
-            }
-        }
-    }
-}
-*/
 
 const std::vector<std::vector<int>> cube_lines = {
     {0, 1}, {1, 2}, {2, 3}, {3, 0},
@@ -445,6 +423,7 @@ int main() {
 	auto new_block = [&]()
 	{
 		kind = rand() % 6, cx = 0, cy = 0, cz = 0;
+        kind = 5;//temp
         for(int z=0;z<3;z++)for(int y=0;y<3;y++)for(int x=0;x<3;x++) blocks[kind][z][y][x] = blocks_cpy[kind][z][y][x];
 
 		//kind = 4, cx = 0, cy = 0, cz = 0;
@@ -625,6 +604,39 @@ int main() {
                 if(minz>0) move_block_inside();
                 if(cy+maxy>2) cy=2-maxy;
             };
+            auto smooth_rotate = [&](float angleX, float angleY, float angleZ)
+            {// animation here
+                get_minmax();
+                int cnt = max(maxx, maxy);
+                if(cnt==2) minx=miny=0;
+                sf::Vector3f center((minx+cnt)/2.0-1, (miny+cnt)/2.0-1, 0);  // 객체의 중심점 정의
+                printf("cx:%d, cy:%d\n", cx, cy);
+                printf("center: %f, %f, %f\n", center.x+cx, center.y+cy, center.z);
+
+                printf("minx:%d, maxx:%d, miny:%d, maxy:%d\n", minx, maxx, miny, maxy);
+                const int ANI_STEP = 10;
+                for(int step = 0; step < ANI_STEP; step++)
+                {
+                    window.clear();
+                    draw_stage(window, vs, fs);
+                    draw_world(window, vertices, faces);
+                    auto draw_block = [&]() {
+                        //printf("cx:%d, cy:%d, cz:%d\n", cx, cy, cz);
+                        for (const auto& line : lb) {
+                            sf::Vertex lineVertices[] = {
+                                sf::Vertex(viewport(project(vb[line[0]]+point_3d(cx,cy,cz)), 600, 600)),
+                                sf::Vertex(viewport(project(vb[line[1]]+point_3d(cx,cy,cz)), 600, 600)),
+                            };
+                            window.draw(lineVertices, 2, sf::Lines);
+                        }
+                    };
+                    draw_block();
+                    for (auto& vertex : vb) vertex = rotate(vertex - center, angleX/ANI_STEP, angleY/ANI_STEP, angleZ/ANI_STEP) + center;
+                    window.display();
+                }
+                //while(1);
+
+            };
 
 
             if(angleX > 0){
@@ -654,11 +666,13 @@ int main() {
                 }
             }
             if(angleZ > 0){
+                smooth_rotate(0, 0, 90);
                 rotateZ();
                 if(check_block() == false) {
                     rotateZ(), rotateZ(),rotateZ();
                 }
             } else if(angleZ < 0){
+                smooth_rotate(0, 0, -90);
                 rotateZ(), rotateZ(),rotateZ();
                 if(check_block() == false) {
                     cx = cy = 0;
