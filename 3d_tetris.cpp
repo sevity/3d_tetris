@@ -8,6 +8,7 @@
 #include <map>
 #include <algorithm>
 #include <set>
+#include <assert.h>
 using namespace std;
 
 typedef sf::Vector3f point_3d;
@@ -419,14 +420,12 @@ int main() {
     std::vector<std::vector<int>> faces;
     std::vector<std::vector<int>> lines;
     generate_world_blocks(world, vertices, faces);
-    int kind, cx, cy, cz;
+    int kind, cz;
 	auto new_block = [&]()
 	{
-		kind = rand() % 6, cx = 0, cy = 0, cz = 0;
+		kind = rand() % 6, cz = 0;
         kind = 5;//temp
         for(int z=0;z<3;z++)for(int y=0;y<3;y++)for(int x=0;x<3;x++) blocks[kind][z][y][x] = blocks_cpy[kind][z][y][x];
-
-		//kind = 4, cx = 0, cy = 0, cz = 0;
 	};
 	new_block();
 
@@ -438,22 +437,61 @@ int main() {
                     if (blocks[kind][z][y][x] == 0) {
                         continue;
                     }
-                    if (x + cx < 0 || x + cx >= 3) {
-                        return false; // hit wall
-                    }
-                    if (y + cy < 0 || y + cy >= 3) {
-                        return false; // hit wall
-                    }
                     if (z + cz < 0 || z + cz >= 10) {
                         return false; // hit ceil or bottom
                     }
-                    if (world[cz + z][cy + y][cx + x]) {
+                    if (world[cz + z][y][x]) {
                         return false; // collision with world blocks
                     }
                 }
             }
         }
 		return true;
+	};
+    int maxx = 0, maxy = 0, maxz = 0;
+    int minx = 2, miny = 2, minz = 2;
+    auto get_minmax = [&]() {
+        maxx = 0, maxy = 0, maxz = 0;
+        minx = 2, miny = 2, minz = 2;
+        for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) {
+            if(blocks[kind][z][y][x])
+                minx = min(minx, x), maxx = max(maxx, x),
+                miny = min(miny, y), maxy = max(maxy, y),
+                minz = min(minz, z), maxz = max(maxz, z);
+        } 
+
+    };
+	auto move_block_inside2 = [&](int xx, int yy)
+	{
+        assert(abs(xx)<=1 && abs(yy)<=1);
+        get_minmax();
+
+        if(xx>0 && maxx==2) return false;
+        if(xx<0 && minx==0) return false;
+        if(yy>0 && maxy==2) return false;
+        if(yy<0 && miny==0) return false;
+
+        if(xx<0){
+            int temp[3][3][3] = {};
+            for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 2; ++x) temp[z][y][x] = blocks[kind][z][y][x+1];
+            for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
+        }
+        if(xx>0){
+            int temp[3][3][3] = {};
+            for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 2; ++x) temp[z][y][x+1] = blocks[kind][z][y][x];
+            for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
+        }
+        if(yy<0){
+            int temp[3][3][3] = {};
+            for (int z = 0; z < 3; ++z) for (int y = 0; y < 2; ++y) for (int x = 0; x < 3; ++x) temp[z][y][x] = blocks[kind][z][y+1][x];
+            for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
+        }
+        if(yy>0){
+            int temp[3][3][3] = {};
+            for (int z = 0; z < 3; ++z) for (int y = 0; y < 2; ++y) for (int x = 0; x < 3; ++x) temp[z][y+1][x] = blocks[kind][z][y][x];
+            for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
+        }
+        return true;
 	};
 
 	auto clear_lines = [&]()
@@ -491,7 +529,7 @@ int main() {
 			for(int z=0;z<3;z++)for (int y = 0; y < 3; y++)for (int x = 0; x < 3; x++)
 				if (blocks[kind][z][y][x])
 				{
-					world[cz+z][cy + y][cx + x] = 1; //kind + 1;//+1 for avoiding 0
+					world[cz+z][y][x] = 1; //kind + 1;//+1 for avoiding 0
 				}
 			clear_lines();
             //start next block
@@ -523,17 +561,13 @@ int main() {
                     case sf::Keyboard::S: angleY = 90.0f; break;
                     case sf::Keyboard::D: angleZ = 90.0f; break;
                     case sf::Keyboard::Up:
-                        cy--; if(check_block()==false) cy++;
-                        break;
+                        move_block_inside2(0,-1); break;
                     case sf::Keyboard::Down:
-                        cy++; if(check_block()==false) cy--;
-                        break;
+                        move_block_inside2(0,1); break;
                     case sf::Keyboard::Left:
-                        cx--; if(check_block()==false) cx++;
-                        break;
+                        move_block_inside2(-1,0); break;
                     case sf::Keyboard::Right:
-                        cx++; if(check_block()==false) cx--;
-                        break;
+                        move_block_inside2(1,0); break;
                     case sf::Keyboard::Space:
                         while(go_down() == true);
                         break;
@@ -546,63 +580,23 @@ int main() {
         //인티저회전
         {
             int temp[3][3][3] = {};
-            int maxx = 0, maxy = 0, maxz = 0;
-            int minx = 2, miny = 2, minz = 2;
-            auto get_minmax = [&]() {
-                maxx = 0, maxy = 0, maxz = 0;
-                minx = 2, miny = 2, minz = 2;
-                for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) {
-                    if(blocks[kind][z][y][x])
-                        minx = min(minx, x), maxx = max(maxx, x),
-                        miny = min(miny, y), maxy = max(maxy, y),
-                        minz = min(minz, z), maxz = max(maxz, z);
-                } 
-
-            };
-            auto move_block_inside = [&](){
-                int temp[3][3][3] = {};
-                int ox = cx, oy = cy;  // original x,y
-                cx=cy=0;
-                int mx = 0, my = 0, mz = 0;     // moved x,y,z
-                get_minmax();
-                for (int z = 0; z < 3-minz; ++z) for (int y = 0; y < 3-miny; ++y) for (int x = 0; x < 3-minx; ++x) temp[z][y][x] = blocks[kind][z+minz][y+miny][x+minx];
-                for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
-                cx = ox+minx, cy = oy+miny;
-            };
             auto rotateZ = [&]() {
-                move_block_inside();
                 get_minmax();
                 int cnt = max(maxx, maxy)+1;
                 for (int z = 0; z < 3; ++z) for (int y = 0; y < cnt; ++y) for (int x = 0; x < cnt; ++x) temp[z][y][x] = blocks[kind][z][cnt-1-x][y];
                 for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
-                get_minmax();
-                if(minx>0) cx--;
-                if(miny>0) cy--;
-                if(cx+maxx>2) cx=2-maxx;
-                if(cy+maxy>2) cy=2-maxy;
             };
             auto rotateY = [&]() {
-                move_block_inside();
                 get_minmax();
                 int cnt = max(maxx, maxz)+1;
                 for (int z = 0; z < cnt; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < cnt; ++x) temp[z][y][x] = blocks[kind][cnt-1-x][y][z];
                 for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
-                get_minmax();
-                if(minx>0) cx--;
-                if(minz>0) move_block_inside();
-                if(cx+maxx>2) cx=2-maxx;
             };
             auto rotateX = [&]() {
-                move_block_inside();
                 get_minmax();
                 int cnt = max(maxy, maxz)+1;
                 for (int z = 0; z < cnt; ++z) for (int y = 0; y < cnt; ++y) for (int x = 0; x < 3; ++x) temp[z][y][x] = blocks[kind][y][cnt-1-z][x];
                 for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
-                get_minmax();
-                //if(minx>0) cx--;
-                if(miny>0) cy--;
-                if(minz>0) move_block_inside();
-                if(cy+maxy>2) cy=2-maxy;
             };
             auto smooth_rotate = [&](float angleX, float angleY, float angleZ)
             {// animation here
@@ -610,9 +604,7 @@ int main() {
                 int cnt = max(maxx, maxy);
                 if(cnt==2) minx=miny=0;
                 sf::Vector3f center((minx+cnt)/2.0-1, (miny+cnt)/2.0-1, 0);  // 객체의 중심점 정의
-                printf("cx:%d, cy:%d\n", cx, cy);
-                printf("center: %f, %f, %f\n", center.x+cx, center.y+cy, center.z);
-
+                printf("center: %f, %f, %f\n", center.x, center.y, center.z);
                 printf("minx:%d, maxx:%d, miny:%d, maxy:%d\n", minx, maxx, miny, maxy);
                 const int ANI_STEP = 10;
                 for(int step = 0; step < ANI_STEP; step++)
@@ -621,11 +613,10 @@ int main() {
                     draw_stage(window, vs, fs);
                     draw_world(window, vertices, faces);
                     auto draw_block = [&]() {
-                        //printf("cx:%d, cy:%d, cz:%d\n", cx, cy, cz);
                         for (const auto& line : lb) {
                             sf::Vertex lineVertices[] = {
-                                sf::Vertex(viewport(project(vb[line[0]]+point_3d(cx,cy,cz)), 600, 600)),
-                                sf::Vertex(viewport(project(vb[line[1]]+point_3d(cx,cy,cz)), 600, 600)),
+                                sf::Vertex(viewport(project(vb[line[0]]+point_3d(0,0,cz)), 600, 600)),
+                                sf::Vertex(viewport(project(vb[line[1]]+point_3d(0,0,cz)), 600, 600)),
                             };
                             window.draw(lineVertices, 2, sf::Lines);
                         }
@@ -642,26 +633,22 @@ int main() {
             if(angleX > 0){
                 rotateX();
                 if(check_block() == false) {
-                    cy = 0;
                     if(check_block() == false) rotateX(), rotateX(),rotateX();
                 }
             } else if(angleX < 0){
                 rotateX(), rotateX(),rotateX();
                 if(check_block() == false) {
-                    cy = 0;
                     if(check_block() == false) rotateX();
                 }
             }
             if(angleY > 0){
                 rotateY(), rotateY(),rotateY();
                 if(check_block() == false) {
-                    cx = 0;
                     if(check_block() == false) rotateY();
                 }
             } else if(angleY < 0){
                 rotateY();
                 if(check_block() == false) {
-                    cx = 0;
                     if(check_block() == false) rotateY(), rotateY(),rotateY();
                 }
             }
@@ -675,7 +662,6 @@ int main() {
                 smooth_rotate(0, 0, -90);
                 rotateZ(), rotateZ(),rotateZ();
                 if(check_block() == false) {
-                    cx = cy = 0;
                     if(check_block() == false) rotateZ();
                 }
             }
@@ -687,11 +673,10 @@ int main() {
         generate_world_blocks(world, vertices, faces);
         draw_world(window, vertices, faces);
         auto draw_block = [&]() {
-            //printf("cx:%d, cy:%d, cz:%d\n", cx, cy, cz);
             for (const auto& line : lb) {
                 sf::Vertex lineVertices[] = {
-                    sf::Vertex(viewport(project(vb[line[0]]+point_3d(cx,cy,cz)), 600, 600)),
-                    sf::Vertex(viewport(project(vb[line[1]]+point_3d(cx,cy,cz)), 600, 600)),
+                    sf::Vertex(viewport(project(vb[line[0]]+point_3d(0,0,cz)), 600, 600)),
+                    sf::Vertex(viewport(project(vb[line[1]]+point_3d(0,0,cz)), 600, 600)),
                 };
                 window.draw(lineVertices, 2, sf::Lines);
             }
