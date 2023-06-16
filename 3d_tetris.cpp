@@ -472,6 +472,9 @@ int main() {
         if(yy>0 && maxy==2) return false;
         if(yy<0 && miny==0) return false;
 
+        int ori[3][3][3] = {};
+        for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) ori[z][y][x] = blocks[kind][z][y][x];
+
         if(xx<0){
             int temp[3][3][3] = {};
             for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 2; ++x) temp[z][y][x] = blocks[kind][z][y][x+1];
@@ -491,6 +494,10 @@ int main() {
             int temp[3][3][3] = {};
             for (int z = 0; z < 3; ++z) for (int y = 0; y < 2; ++y) for (int x = 0; x < 3; ++x) temp[z][y+1][x] = blocks[kind][z][y][x];
             for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
+        }
+        if(check_block()==false){
+            for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = ori[z][y][x];
+            return false;
         }
         return true;
 	};
@@ -567,21 +574,13 @@ int main() {
                     case sf::Keyboard::S: angleY = 90.0f; break;
                     case sf::Keyboard::D: angleZ = 90.0f; break;
                     case sf::Keyboard::Up:
-                        move_block_inside(0,-1);
-                        if(check_block()==false) move_block_inside(0, 1);
-                        break;
+                        move_block_inside(0,-1); break;
                     case sf::Keyboard::Down:
-                        move_block_inside(0,1);
-                        if(check_block()==false) move_block_inside(0, -1);
-                        break;
+                        move_block_inside(0,1); break;
                     case sf::Keyboard::Left:
-                        move_block_inside(-1,0);
-                        if(check_block()==false) move_block_inside(1, 0);
-                        break;
+                        move_block_inside(-1,0); break;
                     case sf::Keyboard::Right:
-                        move_block_inside(1,0);
-                        if(check_block()==false) move_block_inside(-1, 0);
-                        break;
+                        move_block_inside(1,0); break;
                     case sf::Keyboard::Space:
                         while(go_down() == true);
                         break;
