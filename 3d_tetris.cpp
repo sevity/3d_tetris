@@ -18,15 +18,15 @@ const int Z_OFFSET = 5;//원근감 조절을 위함
 int blocks_cpy[7][3][3][3];
 int blocks[7][3][3][3] = {
     // 0.corner
-    0,0,0, // 천장층
-    0,1,0,
-    1,1,1,
+    1,0,0, // 천장층
+    1,0,0,
+    0,0,0,
 
-    0,0,0, // 중간층
+    1,0,0, // 중간층
     0,0,0,
     0,0,0,
 
-    0,0,0, // 바닥층
+    1,0,0, // 바닥층
     0,0,0,
     0,0,0,
 
@@ -409,13 +409,6 @@ int main() {
     generate_blocks(blocks, 0, vb, lb);
 
     sf::Vector3f center(0, 0, 0);  // 객체의 중심점 정의
-    /*
-    center = std::accumulate(v2.begin(), v2.end(), center);
-    center /= (float)v2.size();
-    center.y-=0.7;
-    printf("center: %f, %f, %f\n", center.x, center.y, center.z);
-    */
-
 
     std::vector<sf::Vector3f> vertices;
     std::vector<std::vector<int>> faces;
@@ -425,17 +418,23 @@ int main() {
 	auto new_block = [&]()
 	{
 		kind = rand() % 6, cz = 0;
-        //kind = 0;//temp
+        kind = 0;//temp
         for(int z=0;z<3;z++)for(int y=0;y<3;y++)for(int x=0;x<3;x++) blocks[kind][z][y][x] = blocks_cpy[kind][z][y][x];
 	};
 	new_block();
 
-	auto check_block = [&]()
+    int fake_block[3][3][3] = {};
+	auto check_block = [&](bool fake=false)
 	{
+        int (*block)[3][3] = blocks[kind];
+        if(fake){
+            //for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) fake_block[z][y][x] = block[z][y][x];
+            block=fake_block;
+        }
         for (int z = 0; z < 3; z++) {
             for (int y = 0; y < 3; y++) {
                 for (int x = 0; x < 3; x++) {
-                    if (blocks[kind][z][y][x] == 0) {
+                    if (block[z][y][x] == 0) {
                         continue;
                     }
                     if (z + cz < 0 || z + cz >= 10) {
@@ -449,23 +448,35 @@ int main() {
         }
 		return true;
 	};
+
     int maxx = 0, maxy = 0, maxz = 0;
     int minx = 2, miny = 2, minz = 2;
-    auto get_minmax = [&]() {
+    auto get_minmax = [&](bool fake=false) {
+        int (*block)[3][3] = blocks[kind];
+        if(fake){
+            //for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) fake_block[z][y][x] = block[z][y][x];
+            block=fake_block;
+        }
         maxx = 0, maxy = 0, maxz = 0;
         minx = 2, miny = 2, minz = 2;
         for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) {
-            if(blocks[kind][z][y][x])
+            if(block[z][y][x])
                 minx = min(minx, x), maxx = max(maxx, x),
                 miny = min(miny, y), maxy = max(maxy, y),
                 minz = min(minz, z), maxz = max(maxz, z);
         } 
 
     };
-	auto move_block_inside = [&](int xx, int yy)
+	auto move_block_inside = [&](int xx, int yy, bool fake=false)
 	{
         assert(abs(xx)<=1 && abs(yy)<=1);
-        get_minmax();
+        get_minmax(fake);
+
+        int (*block)[3][3] = blocks[kind];
+        if(fake){
+            //for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) fake_block[z][y][x] = block[z][y][x];
+            block=fake_block;
+        }
 
         if(xx>0 && maxx==2) return false;
         if(xx<0 && minx==0) return false;
@@ -473,30 +484,30 @@ int main() {
         if(yy<0 && miny==0) return false;
 
         int ori[3][3][3] = {};
-        for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) ori[z][y][x] = blocks[kind][z][y][x];
+        for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) ori[z][y][x] = block[z][y][x];
 
         if(xx<0){
             int temp[3][3][3] = {};
-            for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 2; ++x) temp[z][y][x] = blocks[kind][z][y][x+1];
-            for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
+            for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 2; ++x) temp[z][y][x] = block[z][y][x+1];
+            for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) block[z][y][x] = temp[z][y][x];
         }
         if(xx>0){
             int temp[3][3][3] = {};
-            for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 2; ++x) temp[z][y][x+1] = blocks[kind][z][y][x];
-            for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
+            for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 2; ++x) temp[z][y][x+1] = block[z][y][x];
+            for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) block[z][y][x] = temp[z][y][x];
         }
         if(yy<0){
             int temp[3][3][3] = {};
-            for (int z = 0; z < 3; ++z) for (int y = 0; y < 2; ++y) for (int x = 0; x < 3; ++x) temp[z][y][x] = blocks[kind][z][y+1][x];
-            for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
+            for (int z = 0; z < 3; ++z) for (int y = 0; y < 2; ++y) for (int x = 0; x < 3; ++x) temp[z][y][x] = block[z][y+1][x];
+            for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) block[z][y][x] = temp[z][y][x];
         }
         if(yy>0){
             int temp[3][3][3] = {};
-            for (int z = 0; z < 3; ++z) for (int y = 0; y < 2; ++y) for (int x = 0; x < 3; ++x) temp[z][y+1][x] = blocks[kind][z][y][x];
-            for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
+            for (int z = 0; z < 3; ++z) for (int y = 0; y < 2; ++y) for (int x = 0; x < 3; ++x) temp[z][y+1][x] = block[z][y][x];
+            for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) block[z][y][x] = temp[z][y][x];
         }
-        if(check_block()==false){
-            for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = ori[z][y][x];
+        if(check_block(fake)==false){
+            for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) block[z][y][x] = ori[z][y][x];
             return false;
         }
         return true;
@@ -592,14 +603,22 @@ int main() {
         //for (auto& vertex : vb) vertex = rotate(vertex - center, angleX, angleY, angleZ) + center;
         //인티저회전
         {
-            auto rotateZ = [&]() {
+            auto rotateZ = [&](bool fake = false) {
                 int temp[3][3][3] = {};
-                int cx = 0; while(move_block_inside(-1,0)) cx++;
-                int cy = 0; while(move_block_inside(0,-1)) cy++;
-                for (int z = 0; z < 3; ++z) for (int y = 0; y < maxx+1; ++y) for (int x = 0; x < maxy+1; ++x) temp[z][y][x] = blocks[kind][z][maxy-x][y];
-                for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
-                for(int i=0;i<cx;i++) move_block_inside(1,0);
-                for(int i=0;i<cy;i++) move_block_inside(0,1);
+                int (*block)[3][3];
+                block = blocks[kind];
+                if(fake){
+                    //for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) fake_block[z][y][x] = block[z][y][x];
+                    block = fake_block;
+                }
+
+                int cx = 0; while(move_block_inside(-1,0, fake)) cx++;
+                int cy = 0; while(move_block_inside(0,-1, fake)) cy++;
+                for (int z = 0; z < 3; ++z) for (int y = 0; y < maxx+1; ++y) for (int x = 0; x < maxy+1; ++x) temp[z][y][x] = block[z][maxy-x][y];
+                for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) block[z][y][x] = temp[z][y][x];
+                for(int i=0;i<cx;i++) move_block_inside(1,0, fake);
+                for(int i=0;i<cy;i++) move_block_inside(0,1, fake);
+                return block;
             };
             auto rotateY = [&]() {
                 int temp[3][3][3] = {};
@@ -617,12 +636,16 @@ int main() {
             };
             auto smooth_rotate = [&](float angleX, float angleY, float angleZ)
             {// animation here
-                get_minmax();
+                get_minmax(true);
                 int cnt = max(maxx, maxy);
+                sf::Vector3f center_to((minx+maxx)/2.0-1, (miny+maxy)/2.0-1, 0);  // 객체의 중심점 정의
+
+                get_minmax();
+                cnt = max(maxx, maxy);
                 sf::Vector3f center((minx+maxx)/2.0-1, (miny+maxy)/2.0-1, 0);  // 객체의 중심점 정의
-                printf("center: %f, %f, %f\n", center.x, center.y, center.z);
-                printf("minx:%d, maxx:%d, miny:%d, maxy:%d\n", minx, maxx, miny, maxy);
-                const int ANI_STEP = 24;
+                printf("center: %f, %f, %f, center_to: %f, %f, %f\n", center.x, center.y, center.z, center_to.x, center_to.y, center_to.z);
+                //printf("minx:%d, maxx:%d, miny:%d, maxy:%d\n", minx, maxx, miny, maxy);
+                const int ANI_STEP = 40;
                 for(int step = 0; step < ANI_STEP; step++)
                 {
                     window.clear();
@@ -631,8 +654,8 @@ int main() {
                     auto draw_block = [&]() {
                         for (const auto& line : lb) {
                             sf::Vertex lineVertices[] = {
-                                sf::Vertex(viewport(project(vb[line[0]]+point_3d(0,0,cz)), 600, 600)),
-                                sf::Vertex(viewport(project(vb[line[1]]+point_3d(0,0,cz)), 600, 600)),
+                                sf::Vertex(viewport(project(vb[line[0]]+point_3d((center_to.x-center.x)*step/ANI_STEP,(center_to.y-center.y)*step/ANI_STEP,cz)), 600, 600)),
+                                sf::Vertex(viewport(project(vb[line[1]]+point_3d((center_to.x-center.x)*step/ANI_STEP,(center_to.y-center.y)*step/ANI_STEP,cz)), 600, 600)),
                             };
                             window.draw(lineVertices, 2, sf::Lines);
                         }
@@ -669,12 +692,15 @@ int main() {
                 }
             }
             if(angleZ > 0){
+                for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) fake_block[z][y][x] = blocks[kind][z][y][x];
+                rotateZ(true);
                 smooth_rotate(0, 0, 90);
                 rotateZ();
                 if(check_block() == false) {
                     rotateZ(), rotateZ(),rotateZ();
                 }
             } else if(angleZ < 0){
+                rotateZ(true);
                 smooth_rotate(0, 0, -90);
                 rotateZ(), rotateZ(),rotateZ();
                 if(check_block() == false) {
