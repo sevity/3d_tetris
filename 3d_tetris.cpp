@@ -19,7 +19,7 @@ int blocks_cpy[7][3][3][3];
 int blocks[7][3][3][3] = {
     // 0.corner
     0,0,0, // 천장층
-    1,1,0,
+    0,0,0,
     1,1,0,
 
     0,0,0, // 중간층
@@ -424,7 +424,7 @@ int main() {
 	auto new_block = [&]()
 	{
 		kind = rand() % 6, cz = 0;
-        //kind = 5;//temp
+        kind = 0;//temp
         for(int z=0;z<3;z++)for(int y=0;y<3;y++)for(int x=0;x<3;x++) blocks[kind][z][y][x] = blocks_cpy[kind][z][y][x];
 	};
 	new_block();
@@ -461,7 +461,7 @@ int main() {
         } 
 
     };
-	auto move_block_inside2 = [&](int xx, int yy)
+	auto move_block_inside = [&](int xx, int yy)
 	{
         assert(abs(xx)<=1 && abs(yy)<=1);
         get_minmax();
@@ -514,6 +514,11 @@ int main() {
 			}
 			//otherwise it will be deleted(clear the line)
 		}
+        for (int i = to; i>=0;i--){
+            for (int y = 0; y < 3; y++)
+            for (int x = 0; x < 3; x++)
+                world[i][y][x] = 0;
+        }
 	};
     bool game_over = false;
 	auto go_down = [&]()
@@ -561,13 +566,21 @@ int main() {
                     case sf::Keyboard::S: angleY = 90.0f; break;
                     case sf::Keyboard::D: angleZ = 90.0f; break;
                     case sf::Keyboard::Up:
-                        move_block_inside2(0,-1); break;
+                        move_block_inside(0,-1);
+                        if(check_block()==false) move_block_inside(0, 1);
+                        break;
                     case sf::Keyboard::Down:
-                        move_block_inside2(0,1); break;
+                        move_block_inside(0,1);
+                        if(check_block()==false) move_block_inside(0, -1);
+                        break;
                     case sf::Keyboard::Left:
-                        move_block_inside2(-1,0); break;
+                        move_block_inside(-1,0);
+                        if(check_block()==false) move_block_inside(1, 0);
+                        break;
                     case sf::Keyboard::Right:
-                        move_block_inside2(1,0); break;
+                        move_block_inside(1,0);
+                        if(check_block()==false) move_block_inside(-1, 0);
+                        break;
                     case sf::Keyboard::Space:
                         while(go_down() == true);
                         break;
@@ -581,26 +594,26 @@ int main() {
         {
             auto rotateZ = [&]() {
                 int temp[3][3][3] = {};
-                int cx = 0; while(move_block_inside2(-1,0)) cx++;
-                int cy = 0; while(move_block_inside2(0,-1)) cy++;
+                int cx = 0; while(move_block_inside(-1,0)) cx++;
+                int cy = 0; while(move_block_inside(0,-1)) cy++;
                 for (int z = 0; z < 3; ++z) for (int y = 0; y < maxx+1; ++y) for (int x = 0; x < maxy+1; ++x) temp[z][y][x] = blocks[kind][z][maxy-x][y];
                 for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
-                for(int i=0;i<cx;i++) move_block_inside2(1,0);
-                for(int i=0;i<cy;i++) move_block_inside2(0,1);
+                for(int i=0;i<cx;i++) move_block_inside(1,0);
+                for(int i=0;i<cy;i++) move_block_inside(0,1);
             };
             auto rotateY = [&]() {
                 int temp[3][3][3] = {};
-                int cx = 0; while(move_block_inside2(-1,0)) cx++;
+                int cx = 0; while(move_block_inside(-1,0)) cx++;
                 for (int z = 0; z < maxx+1; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < maxz+1; ++x) temp[z][y][x] = blocks[kind][maxz-x][y][z];
                 for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
-                for(int i=0;i<cx;i++) move_block_inside2(1,0);
+                for(int i=0;i<cx;i++) move_block_inside(1,0);
             };
             auto rotateX = [&]() {
                 int temp[3][3][3] = {};
-                int cy = 0; while(move_block_inside2(0,-1)) cy++;
+                int cy = 0; while(move_block_inside(0,-1)) cy++;
                 for (int z = 0; z < maxy+1; ++z) for (int y = 0; y < maxz+1; ++y) for (int x = 0; x < 3; ++x) temp[z][y][x] = blocks[kind][y][maxy-z][x];
                 for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
-                for(int i=0;i<cy;i++) move_block_inside2(0,1);
+                for(int i=0;i<cy;i++) move_block_inside(0,1);
             };
             auto smooth_rotate = [&](float angleX, float angleY, float angleZ)
             {// animation here
