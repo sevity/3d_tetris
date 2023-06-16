@@ -424,7 +424,7 @@ int main() {
 	auto new_block = [&]()
 	{
 		kind = rand() % 6, cz = 0;
-        kind = 5;//temp
+        //kind = 5;//temp
         for(int z=0;z<3;z++)for(int y=0;y<3;y++)for(int x=0;x<3;x++) blocks[kind][z][y][x] = blocks_cpy[kind][z][y][x];
 	};
 	new_block();
@@ -579,24 +579,28 @@ int main() {
         //for (auto& vertex : vb) vertex = rotate(vertex - center, angleX, angleY, angleZ) + center;
         //인티저회전
         {
-            int temp[3][3][3] = {};
             auto rotateZ = [&]() {
-                get_minmax();
-                int cnt = max(maxx, maxy)+1;
-                for (int z = 0; z < 3; ++z) for (int y = 0; y < cnt; ++y) for (int x = 0; x < cnt; ++x) temp[z][y][x] = blocks[kind][z][cnt-1-x][y];
+                int temp[3][3][3] = {};
+                int cx = 0; while(move_block_inside2(-1,0)) cx++;
+                int cy = 0; while(move_block_inside2(0,-1)) cy++;
+                for (int z = 0; z < 3; ++z) for (int y = 0; y < maxx+1; ++y) for (int x = 0; x < maxy+1; ++x) temp[z][y][x] = blocks[kind][z][maxy-x][y];
                 for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
+                for(int i=0;i<cx;i++) move_block_inside2(1,0);
+                for(int i=0;i<cy;i++) move_block_inside2(0,1);
             };
             auto rotateY = [&]() {
-                get_minmax();
-                int cnt = max(maxx, maxz)+1;
-                for (int z = 0; z < cnt; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < cnt; ++x) temp[z][y][x] = blocks[kind][cnt-1-x][y][z];
+                int temp[3][3][3] = {};
+                int cx = 0; while(move_block_inside2(-1,0)) cx++;
+                for (int z = 0; z < maxx+1; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < maxz+1; ++x) temp[z][y][x] = blocks[kind][maxz-x][y][z];
                 for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
+                for(int i=0;i<cx;i++) move_block_inside2(1,0);
             };
             auto rotateX = [&]() {
-                get_minmax();
-                int cnt = max(maxy, maxz)+1;
-                for (int z = 0; z < cnt; ++z) for (int y = 0; y < cnt; ++y) for (int x = 0; x < 3; ++x) temp[z][y][x] = blocks[kind][y][cnt-1-z][x];
+                int temp[3][3][3] = {};
+                int cy = 0; while(move_block_inside2(0,-1)) cy++;
+                for (int z = 0; z < maxy+1; ++z) for (int y = 0; y < maxz+1; ++y) for (int x = 0; x < 3; ++x) temp[z][y][x] = blocks[kind][y][maxy-z][x];
                 for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) blocks[kind][z][y][x] = temp[z][y][x];
+                for(int i=0;i<cy;i++) move_block_inside2(0,1);
             };
             auto smooth_rotate = [&](float angleX, float angleY, float angleZ)
             {// animation here
@@ -653,13 +657,13 @@ int main() {
                 }
             }
             if(angleZ > 0){
-                smooth_rotate(0, 0, 90);
+                //smooth_rotate(0, 0, 90);
                 rotateZ();
                 if(check_block() == false) {
                     rotateZ(), rotateZ(),rotateZ();
                 }
             } else if(angleZ < 0){
-                smooth_rotate(0, 0, -90);
+                //smooth_rotate(0, 0, -90);
                 rotateZ(), rotateZ(),rotateZ();
                 if(check_block() == false) {
                     if(check_block() == false) rotateZ();
