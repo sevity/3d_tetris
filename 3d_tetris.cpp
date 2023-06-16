@@ -19,8 +19,8 @@ int blocks_cpy[7][3][3][3];
 int blocks[7][3][3][3] = {
     // 0.corner
     0,0,0, // 천장층
-    0,0,0,
-    1,1,0,
+    0,1,0,
+    1,1,1,
 
     0,0,0, // 중간층
     0,0,0,
@@ -388,6 +388,7 @@ void generate_blocks(int blocks[7][3][3][3], int kind, std::vector<sf::Vector3f>
 }
 
 int main() {
+    srand(time(0));
     sf::RenderWindow window(sf::VideoMode(600, 600), "3D Object");
 
     std::vector<sf::Vector3f> vs;
@@ -424,7 +425,7 @@ int main() {
 	auto new_block = [&]()
 	{
 		kind = rand() % 6, cz = 0;
-        kind = 0;//temp
+        //kind = 0;//temp
         for(int z=0;z<3;z++)for(int y=0;y<3;y++)for(int x=0;x<3;x++) blocks[kind][z][y][x] = blocks_cpy[kind][z][y][x];
 	};
 	new_block();
@@ -619,11 +620,10 @@ int main() {
             {// animation here
                 get_minmax();
                 int cnt = max(maxx, maxy);
-                if(cnt==2) minx=miny=0;
-                sf::Vector3f center((minx+cnt)/2.0-1, (miny+cnt)/2.0-1, 0);  // 객체의 중심점 정의
+                sf::Vector3f center((minx+maxx)/2.0-1, (miny+maxy)/2.0-1, 0);  // 객체의 중심점 정의
                 printf("center: %f, %f, %f\n", center.x, center.y, center.z);
                 printf("minx:%d, maxx:%d, miny:%d, maxy:%d\n", minx, maxx, miny, maxy);
-                const int ANI_STEP = 10;
+                const int ANI_STEP = 24;
                 for(int step = 0; step < ANI_STEP; step++)
                 {
                     window.clear();
@@ -670,13 +670,13 @@ int main() {
                 }
             }
             if(angleZ > 0){
-                //smooth_rotate(0, 0, 90);
+                smooth_rotate(0, 0, 90);
                 rotateZ();
                 if(check_block() == false) {
                     rotateZ(), rotateZ(),rotateZ();
                 }
             } else if(angleZ < 0){
-                //smooth_rotate(0, 0, -90);
+                smooth_rotate(0, 0, -90);
                 rotateZ(), rotateZ(),rotateZ();
                 if(check_block() == false) {
                     if(check_block() == false) rotateZ();
