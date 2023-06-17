@@ -565,15 +565,10 @@ int main() {
 
 	sf::Clock clock;
 	while (window.isOpen()) {
-		static float prev = clock.getElapsedTime().asSeconds();
-		if (clock.getElapsedTime().asSeconds() - prev >= 555.5)
-		{
-			prev = clock.getElapsedTime().asSeconds();
-			go_down();
-		}
 		const int ANI_STEP = 10;
-		auto smooth_draw = [&](vector_3f angle, point_3d center, point_3d center_to) {
-			for (int step = 0; step < ANI_STEP; step++)
+		auto smooth_draw = [&](vector_3f angle, point_3d center, point_3d center_to, float speedMultiplier = 1.0) {
+			int TO_STEP = ANI_STEP / speedMultiplier;
+			for (int step = 0; step < TO_STEP; step++)
 			{
 				window.clear();
 				draw_stage(window, vs, fs);
@@ -582,26 +577,42 @@ int main() {
 					for (const auto& line : lb) {
 						sf::Vertex lineVertices[] = {
 							sf::Vertex(viewport(project(vb[line[0]] + point_3d(
-								(center_to.x - center.x) * step / ANI_STEP,(center_to.y - center.y) * step / ANI_STEP,(center_to.z - center.z) * step / ANI_STEP + cz)), 600, 600)),
+								(center_to.x - center.x) * step / TO_STEP,(center_to.y - center.y) * step / TO_STEP,(center_to.z - center.z) * step / TO_STEP + cz)), 600, 600)),
 							sf::Vertex(viewport(project(vb[line[1]] + point_3d(
-								(center_to.x - center.x) * step / ANI_STEP,(center_to.y - center.y) * step / ANI_STEP,(center_to.z - center.z) * step / ANI_STEP + cz)), 600, 600)),
+								(center_to.x - center.x) * step / TO_STEP,(center_to.y - center.y) * step / TO_STEP,(center_to.z - center.z) * step / TO_STEP + cz)), 600, 600)),
 						};
 						window.draw(lineVertices, 2, sf::Lines);
 					}
 				};
 				draw_block();
-				for (auto& vertex : vb) vertex = rotate(vertex - center, angle.x / ANI_STEP, angle.y / ANI_STEP, angle.z / ANI_STEP) + center;
+				for (auto& vertex : vb) vertex = rotate(vertex - center, angle.x / TO_STEP, angle.y / TO_STEP, angle.z / TO_STEP) + center;
 				window.display();
 			}
 		};
+
 		auto move_block = [&](point_2d delta) {
 			for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) fake_block[z][y][x] = blocks[kind][z][y][x];
 			get_minmax(); point_3d center((minx + maxx) / 2.0 - 1.0, (miny + maxy) / 2.0 - 1, 0);
 			move_block_inside(delta.x, delta.y, true); get_minmax(true); point_3d center_to((minx + maxx) / 2.0 - 1.0, (miny + maxy) / 2.0 - 1.0, 0);
 			smooth_draw({ 0,0,0 }, center, center_to);
-			move_block_inside(delta.x, delta.y); 
+			move_block_inside(delta.x, delta.y);
 			generate_blocks(blocks, kind, vb, lb);
 		};
+		auto move_down = [&](float speedMuliplier = 1.0) {
+			for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) fake_block[z][y][x] = blocks[kind][z][y][x];
+			get_minmax(); point_3d center(0, 0, 0);
+			get_minmax(true); point_3d center_to(0, 0, 1);
+			smooth_draw({ 0,0,0 }, center, center_to, speedMuliplier);
+			return go_down();
+		};
+
+
+		static float prev = clock.getElapsedTime().asSeconds();
+		if (clock.getElapsedTime().asSeconds() - prev >= 1.5)
+		{
+			prev = clock.getElapsedTime().asSeconds();
+			move_down();
+		}
 		float angleX = 0, angleY = 0, angleZ = 0;
 
 		sf::Event event;
@@ -621,7 +632,7 @@ int main() {
 				case sf::Keyboard::Left: move_block({ -1,0 }); break;
 				case sf::Keyboard::Right: move_block({ 1, 0 }); break;
 				case sf::Keyboard::Space:
-					while (go_down() == true);
+					while (move_down(10.0) == true);
 					break;
 				default: break;
 				}
