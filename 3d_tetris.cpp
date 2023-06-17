@@ -1,5 +1,6 @@
 #define _USE_MATH_DEFINES
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <cmath>
 #include <iostream>
 #include <fstream>
@@ -531,7 +532,18 @@ int main() {
 						world[to][y][x] = world[from][y][x];
 				to--;
 			}
-			//otherwise it will be deleted(clear the line)
+			else {
+				//otherwise it will be deleted(clear the line)
+				sf::SoundBuffer buffer;
+				buffer.loadFromFile("snd/effect.wav");
+				sf::Sound sound;
+				sound.setBuffer(buffer);
+				sound.play();
+
+				while (sound.getStatus() == sf::Sound::Playing) {
+					sf::sleep(sf::milliseconds(100));
+				}
+			}
 		}
 		for (int i = to; i >= 0; i--) {
 			for (int y = 0; y < 3; y++)
@@ -766,7 +778,7 @@ int main() {
 		};
 		if (game_over) {
 			sf::Font font;
-			font.loadFromFile("fonts/arial.ttf");
+			font.loadFromFile("font/arial.ttf");
 			sf::Text text;
 			text.setFont(font);
 			text.setFillColor(sf::Color::Red);
