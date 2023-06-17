@@ -17,8 +17,8 @@ using vector_3f = sf::Vector3f;
 using point_2d = sf::Vector2f;
 using point_3d = sf::Vector3f;
 const int Z_OFFSET = 5;//원근감 조절을 위함
-
 const int BLOCK_CNT = 6;
+
 int blocks_cpy[BLOCK_CNT][3][3][3] = {};
 int blocks[BLOCK_CNT][3][3][3] = {
 	// 0.corner
@@ -162,7 +162,7 @@ point_3d rotate(const point_3d& point, float angleX, float angleY, float angleZ)
 		point.x * (-sinY) + point.y * (sinX * cosY) + point.z * (cosX * cosY)
 	};
 }
-point_3d camera_position(0, 0, 0);  // 카메라 위치 설정. y값을 높게 설정하여 카메라를 높이 위치시킴
+point_3d camera_position(0, 0, 0.01);  // 카메라 위치 설정. y값을 높게 설정하여 카메라를 높이 위치시킴
 point_3d look_at(0, 0, 1);  // 카메라가 바라보는 방향 설정. y값을 낮게 설정하여 카메라가 아래를 향하게 함
 
 point_2d project(const point_3d& point_) {
@@ -521,6 +521,7 @@ int main() {
 	{
 		int to = WORLD_H - 1;
 		//from bottom line to top line...
+		bool played = false;
 		for (int from = WORLD_H - 1; from >= 0; from--)
 		{
 			int cnt = 0;
@@ -535,8 +536,9 @@ int main() {
 						world[to][y][x] = world[from][y][x];
 				to--;
 			}
-			else {
+			else if(played==false) {
 				//otherwise it will be deleted(clear the line)
+				played = true;
 				static sf::SoundBuffer buffer;
 				static sf::Sound sound;
 				if (buffer.getSampleCount() == 0) {
@@ -616,6 +618,7 @@ int main() {
 			generate_blocks(blocks, kind, vb, lb);
 		};
 		auto move_down = [&](float speedMuliplier = 1.0) {
+			if (game_over) return false;
 			for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) fake_block[z][y][x] = blocks[kind][z][y][x];
 			get_minmax(); point_3d center(0, 0, 0);
 			get_minmax(true); point_3d center_to(0, 0, 1);
@@ -803,7 +806,6 @@ int main() {
 		window.display();
 	}
 
-	delete[] blocks_cpy;
 	return 0;
 }
 
