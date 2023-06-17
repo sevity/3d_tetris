@@ -571,8 +571,40 @@ int main() {
 			prev = clock.getElapsedTime().asSeconds();
 			go_down();
 		}
-		sf::Event event;
+		const int ANI_STEP = 10;
+		auto smooth_draw = [&](vector_3f angle, point_3d center, point_3d center_to) {
+			for (int step = 0; step < ANI_STEP; step++)
+			{
+				window.clear();
+				draw_stage(window, vs, fs);
+				draw_world(window, vertices, faces);
+				auto draw_block = [&]() {
+					for (const auto& line : lb) {
+						sf::Vertex lineVertices[] = {
+							sf::Vertex(viewport(project(vb[line[0]] + point_3d(
+								(center_to.x - center.x) * step / ANI_STEP,(center_to.y - center.y) * step / ANI_STEP,(center_to.z - center.z) * step / ANI_STEP + cz)), 600, 600)),
+							sf::Vertex(viewport(project(vb[line[1]] + point_3d(
+								(center_to.x - center.x) * step / ANI_STEP,(center_to.y - center.y) * step / ANI_STEP,(center_to.z - center.z) * step / ANI_STEP + cz)), 600, 600)),
+						};
+						window.draw(lineVertices, 2, sf::Lines);
+					}
+				};
+				draw_block();
+				for (auto& vertex : vb) vertex = rotate(vertex - center, angle.x / ANI_STEP, angle.y / ANI_STEP, angle.z / ANI_STEP) + center;
+				window.display();
+			}
+		};
+		auto move_block = [&](point_2d delta) {
+			for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) fake_block[z][y][x] = blocks[kind][z][y][x];
+			get_minmax(); point_3d center((minx + maxx) / 2.0 - 1.0, (miny + maxy) / 2.0 - 1, 0);
+			move_block_inside(delta.x, delta.y, true); get_minmax(true); point_3d center_to((minx + maxx) / 2.0 - 1.0, (miny + maxy) / 2.0 - 1.0, 0);
+			smooth_draw({ 0,0,0 }, center, center_to);
+			move_block_inside(delta.x, delta.y); 
+			generate_blocks(blocks, 0, vb, lb);
+		};
 		float angleX = 0, angleY = 0, angleZ = 0;
+
+		sf::Event event;
 		while (window.pollEvent(event)) {
 			if (event.type == sf::Event::Closed)
 				window.close();
@@ -584,14 +616,10 @@ int main() {
 				case sf::Keyboard::A: angleX = 90.0f; break;
 				case sf::Keyboard::S: angleY = 90.0f; break;
 				case sf::Keyboard::D: angleZ = 90.0f; break;
-				case sf::Keyboard::Up:
-					move_block_inside(0, -1); break;
-				case sf::Keyboard::Down:
-					move_block_inside(0, 1); break;
-				case sf::Keyboard::Left:
-					move_block_inside(-1, 0); break;
-				case sf::Keyboard::Right:
-					move_block_inside(1, 0); break;
+				case sf::Keyboard::Up: move_block({ 0,-1 }); break;
+				case sf::Keyboard::Down: move_block({ 0, 1 }); break;
+				case sf::Keyboard::Left: move_block({ -1,0 }); break;
+				case sf::Keyboard::Right: move_block({ 1, 0 }); break;
 				case sf::Keyboard::Space:
 					while (go_down() == true);
 					break;
@@ -600,7 +628,6 @@ int main() {
 			}
 		}
 
-		//for (auto& vertex : vb) vertex = rotate(vertex - center, angleX, angleY, angleZ) + center;
 		//인티저회전
 		{
 			auto rotateZ = [&](bool fake = false) {
@@ -642,28 +669,17 @@ int main() {
 				for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) block[z][y][x] = temp[z][y][x];
 				for (int i = 0; i < cy; i++) move_block_inside(0, 1, fake);
 			};
-			const int ANI_STEP = 100;
-			auto smooth_draw = [&](point_3d angle, point_3d center, point_3d center_to) {
-				for (int step = 0; step < ANI_STEP; step++)
-				{
-					window.clear();
-					draw_stage(window, vs, fs);
-					draw_world(window, vertices, faces);
-					auto draw_block = [&]() {
-						for (const auto& line : lb) {
-							sf::Vertex lineVertices[] = {
-								sf::Vertex(viewport(project(vb[line[0]] + point_3d(
-									(center_to.x - center.x) * step / ANI_STEP,(center_to.y - center.y) * step / ANI_STEP,(center_to.z - center.z) * step / ANI_STEP + cz)), 600, 600)),
-								sf::Vertex(viewport(project(vb[line[1]] + point_3d(
-									(center_to.x - center.x) * step / ANI_STEP,(center_to.y - center.y) * step / ANI_STEP,(center_to.z - center.z) * step / ANI_STEP + cz)), 600, 600)),
-							};
-							window.draw(lineVertices, 2, sf::Lines);
-						}
-					};
-					draw_block();
-					for (auto& vertex : vb) vertex = rotate(vertex - center, angle.x/ANI_STEP, angle.y/ANI_STEP, angle.z / ANI_STEP) + center;
-					window.display();
-				}
+			auto smooth_rotateX = [&](float angle)
+			{
+				get_minmax(true); point_3d center_to(0, (miny + maxy) / 2.0 - 1.0, (minz + maxz) / 2.0 + 2);
+				get_minmax(); point_3d center(0, (miny + maxy) / 2.0 - 1, (minz + maxz) / 2.0 + 2);
+				smooth_draw({ angle,0,0 }, center, center_to);
+			};
+			auto smooth_rotateY = [&](float angle)
+			{
+				get_minmax(true); point_3d center_to((minx + maxx) / 2.0 - 1.0, 0, (minz + maxz) / 2.0 + 2.0);
+				get_minmax(); point_3d center((minx + maxx) / 2.0 - 1, 0, (minz + maxz) / 2.0 + 2);
+				smooth_draw({ 0,angle,0 }, center, center_to);
 			};
 			auto smooth_rotateZ = [&](float angle)
 			{
@@ -671,39 +687,6 @@ int main() {
 				get_minmax(); point_3d center((minx + maxx) / 2.0 - 1.0, (miny + maxy) / 2.0 - 1, 0);
 				smooth_draw({ 0,0,angle }, center, center_to);
 			};
-
-			auto smooth_rotateY = [&](float angle)
-			{
-				get_minmax(true); point_3d center_to((minx + maxx) / 2.0 - 1.0, 0, (minz + maxz) / 2.0 + 2.0);
-				get_minmax(); point_3d center((minx + maxx) / 2.0 - 1, 0, (minz + maxz) / 2.0 + 2);
-				smooth_draw({ 0,angle,0 }, center, center_to);
-			};
-
-			auto smooth_rotateX = [&](float angle)
-			{
-				get_minmax(true); point_3d center_to(0, (miny + maxy) / 2.0 - 1.0, (minz + maxz) / 2.0 + 2);
-				get_minmax(); point_3d center(0, (miny + maxy) / 2.0 - 1, (minz + maxz) / 2.0 + 2);  // 객체의 중심점 정의
-				for (int step = 0; step < ANI_STEP; step++)
-				{
-					window.clear();
-					draw_stage(window, vs, fs);
-					draw_world(window, vertices, faces);
-					auto draw_block = [&]() {
-						for (const auto& line : lb) {
-							sf::Vertex lineVertices[] = {
-								sf::Vertex(viewport(project(vb[line[0]] + point_3d((center_to.x - center.x) * step / ANI_STEP,(center_to.y - center.y) * step / ANI_STEP,(center_to.z - center.z) * step / ANI_STEP + cz)), 600, 600)),
-								sf::Vertex(viewport(project(vb[line[1]] + point_3d((center_to.x - center.x) * step / ANI_STEP,(center_to.y - center.y) * step / ANI_STEP,(center_to.z - center.z) * step / ANI_STEP + cz)), 600, 600)),
-							};
-							window.draw(lineVertices, 2, sf::Lines);
-						}
-					};
-					draw_block();
-					for (auto& vertex : vb) vertex = rotate(vertex - center, angle / ANI_STEP, 0, 0) + center;
-					window.display();
-				}
-			};
-
-
 
 			for (int z = 0; z < 3; ++z) for (int y = 0; y < 3; ++y) for (int x = 0; x < 3; ++x) fake_block[z][y][x] = blocks[kind][z][y][x];
 			if (angleX > 0) {
