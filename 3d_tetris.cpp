@@ -534,14 +534,16 @@ int main() {
 			}
 			else {
 				//otherwise it will be deleted(clear the line)
-				sf::SoundBuffer buffer;
-				buffer.loadFromFile("snd/effect.wav");
-				sf::Sound sound;
-				sound.setBuffer(buffer);
+				static sf::SoundBuffer buffer;
+				static sf::Sound sound;
+				if (buffer.getSampleCount() == 0) {
+					buffer.loadFromFile("snd/effect.wav");
+					sound.setBuffer(buffer);
+				}
 				sound.play();
 
 				while (sound.getStatus() == sf::Sound::Playing) {
-					sf::sleep(sf::milliseconds(100));
+					sf::sleep(sf::milliseconds(10));
 				}
 			}
 		}
