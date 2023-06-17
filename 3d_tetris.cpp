@@ -600,7 +600,7 @@ int main() {
 			move_block_inside(delta.x, delta.y, true); get_minmax(true); point_3d center_to((minx + maxx) / 2.0 - 1.0, (miny + maxy) / 2.0 - 1.0, 0);
 			smooth_draw({ 0,0,0 }, center, center_to);
 			move_block_inside(delta.x, delta.y); 
-			generate_blocks(blocks, 0, vb, lb);
+			generate_blocks(blocks, kind, vb, lb);
 		};
 		float angleX = 0, angleY = 0, angleZ = 0;
 
