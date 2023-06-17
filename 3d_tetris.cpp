@@ -18,8 +18,9 @@ using point_2d = sf::Vector2f;
 using point_3d = sf::Vector3f;
 const int Z_OFFSET = 5;//원근감 조절을 위함
 
-int blocks_cpy[7][3][3][3];
-int blocks[7][3][3][3] = {
+const int BLOCK_CNT = 6;
+int blocks_cpy[BLOCK_CNT][3][3][3] = {};
+int blocks[BLOCK_CNT][3][3][3] = {
 	// 0.corner
 	0,0,0, // 천장층
 	0,0,0,
@@ -98,6 +99,8 @@ int blocks[7][3][3][3] = {
 	0,0,0,
 	0,0,0,
 };
+
+
 const int WORLD_H = 10;
 int world[WORLD_H][3][3] = {
 	0,0,0,
@@ -333,7 +336,7 @@ const std::vector<std::vector<int>> cube_lines = {
 	{0, 4}, {1, 5}, {2, 6}, {3, 7}
 };
 
-void generate_blocks(int blocks[7][3][3][3], int kind, std::vector<point_3d>& vertices, std::vector<std::vector<int>>& lines) {
+void generate_blocks(int blocks[BLOCK_CNT][3][3][3], int kind, std::vector<point_3d>& vertices, std::vector<std::vector<int>>& lines) {
 	vertices.clear();
 	lines.clear();
 	int base_idx = 0;
@@ -406,7 +409,7 @@ int main() {
 	std::vector<std::vector<int>> fb;
 	std::vector<std::vector<int>> lb;
 	//loadObjFile("obj/t_block_0.obj", v2, f2, l2);
-	for (int k = 0; k < 7; k++)for (int z = 0; z < 3; z++)for (int y = 0; y < 3; y++)for (int x = 0; x < 3; x++) blocks_cpy[k][z][y][x] = blocks[k][z][y][x];
+	for (int k = 0; k < BLOCK_CNT; k++)for (int z = 0; z < 3; z++)for (int y = 0; y < 3; y++)for (int x = 0; x < 3; x++) blocks_cpy[k][z][y][x] = blocks[k][z][y][x];
 	generate_blocks(blocks, 0, vb, lb);
 
 	point_3d center(0, 0, 0);  // 객체의 중심점 정의
@@ -418,7 +421,7 @@ int main() {
 	int kind, cz;
 	auto new_block = [&]()
 	{
-		kind = rand() % 6, cz = 0;
+		kind = rand() % BLOCK_CNT, cz = 0;
 		//kind = 4;//temp
 		for (int z = 0; z < 3; z++)for (int y = 0; y < 3; y++)for (int x = 0; x < 3; x++) blocks[kind][z][y][x] = blocks_cpy[kind][z][y][x];
 	};
@@ -800,6 +803,7 @@ int main() {
 		window.display();
 	}
 
+	delete[] blocks_cpy;
 	return 0;
 }
 
